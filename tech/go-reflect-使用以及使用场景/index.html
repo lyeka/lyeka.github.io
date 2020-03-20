@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.66.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Go reflect 使用以及使用场景 &nbsp;&ndash;&nbsp;Yeka&#39;s Blog</title><link rel="stylesheet" href="/css/core.min.1845c8edbd8e203cec51c9201c00cf69fdf6cb8f8e55f1f5a7bdcaf36843477ad93a9f5439e85942ebe5500230683a3f.css" integrity="sha384-GEXI7b2OIDzsUckgHADPaf32y4&#43;OVfH1p73K82hDR3rZOp9UOehZQuvlUAIwaDo/"><body>
+    <div class="base-body"><section id="header" class="site header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/logo.jpg" alt /><span class="site name">Yeka's Blog</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/categories/">Categories</a><a class="nav item" href="/tags/">Tags</a><a class="nav item" href=""></a></nav></div></span></div><div class="site slogan"><span class="title">做三月份的事，七月份自有答案</span></div></section><div id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Go reflect 使用以及使用场景 </h1><p class="article date">Friday, March 20, 2020</p></section><article class="article markdown-body"><h1 id="go-reflect-使用以及使用场景">Go reflect 使用以及使用场景</h1>
+<p>🌿本文源自各文章的总结，加上自己的一些理解与修改</p>
+<h2 id="reflect-是什么">reflect 是什么</h2>
+<p><strong>定义</strong></p>
+<blockquote>
+<p>reflect（反射），在计算机学中是指计算机程序在<a href="https://zh.wikipedia.org/wiki/%e8%bf%90%e8%a1%8c%e6%97%b6"target="_blank">运行时</a>（runtime）可以访问、检测和修改它本身状态或行为的一种能力。用比喻来说，反射就是程序在运行的时候能够“观察”并且修改自己的行为。</p>
+</blockquote>
+<p>没懂。。。</p>
+<p><strong>历史背景</strong></p>
+<p>早期计算机的原生汇编语言本质上就具有反射特性。因为它是由定义编程指令作为数据，如动态修改指令或对它们进行分析等等的反射功能是很平常的。编程发展到如C语言等高抽象层次的语言时，这种实践消失了，带有反射特性的高级编程语言要到更晚的时候才出现。</p>
+<p><strong>为什么需要反射</strong></p>
+<p>强类型语言在编译期间会对对象（变量）作类型，接口，字段，方法等作合法性检测，反射技术则允许将对需要调用的对象的信息检查工作从编译期间推迟到运行期间再现场执行。这样一来，可以在编译期间先不明确目标对象的接口名称、字段（fields，即对象的成员变量）、可用方法，然后在运行根据目标对象自身的信息决定如何处理。它还允许根据判断结果进行实例化新对象和相关方法的调用。</p>
+<p>反射主要用途就是使给定的程序动态地适应不同的运行情况。利用面向对象建模中的多态性也可以简化编写分别适用于多种不同情形的功能代码，<strong>但是反射可以解决多态性并不适用的更普遍情形，从而更大程度地避免硬编码（即把代码的细节“写死”，缺乏灵活性）的代码风格</strong>。</p>
+<p><strong>总结</strong></p>
+<p>反射并不是语言必须实现的，是为了更灵活的编码。</p>
+<p>没看懂的话，可以结合下面的参考原文以及reflect使用场景理解。。。</p>
+<h2 id="go-reflect-如何使用">Go reflect 如何使用</h2>
+<h3 id="原理">原理</h3>
+<p><strong>类型设计</strong></p>
+<p>Go的变量包括</p>
+<ul>
+<li>value</li>
+<li>type</li>
+</ul>
+<p>而type有两种</p>
+<ul>
+<li>
+<p>static type</p>
+</li>
+<li>
+<p>concrete type</p>
+</li>
+</ul>
+<p>如int， float， string这些类型的type为static type，在声明时便已经确定；</p>
+<p>而interface的type为concrete type，runtime才看得见的类型，故只有inteface类型才有反射一说。</p>
+<p><strong>interface</strong></p>
+<p>interface包括</p>
+<ul>
+<li>value</li>
+<li>(concrete)type</li>
+</ul>
+<p>故可以根据这type实现reflect</p>
+<h3 id="使用">使用</h3>
+<p><strong><code>TypeOf</code></strong></p>
+<p>获取intaface的类型</p>
+<p><strong><code>ValueOf</code></strong></p>
+<p>获取interface的具体值</p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;reflect&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">num</span> <span style="color:#66d9ef">int</span> = <span style="color:#ae81ff">233</span>
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">interface</span>{} = <span style="color:#a6e22e">num</span>
+
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;type: &#34;</span>, <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">i</span>))
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;value: &#34;</span>, <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#a6e22e">i</span>))
+}
+
+
+<span style="color:#75715e">// output:
+</span><span style="color:#75715e">// type:  int
+</span><span style="color:#75715e">// value:  233
+</span></code></pre></div><p><strong>类型转换</strong></p>
+<p>简单类型， 如int， float64， string</p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;reflect&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">int</span> = <span style="color:#ae81ff">233</span>
+	
+	<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">i</span>)
+	<span style="color:#a6e22e">v</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#a6e22e">i</span>)
+
+	<span style="color:#a6e22e">cp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Interface</span>().(<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)
+	<span style="color:#a6e22e">cv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">Interface</span>().(<span style="color:#66d9ef">int</span>)
+
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">cp</span>, <span style="color:#a6e22e">cv</span>)
+}
+
+<span style="color:#75715e">// output
+</span><span style="color:#75715e">// 0xc000016070 233
+</span></code></pre></div><p>注意，该类型断言如若类型不符合，例如将int类型转换的interface断言为*int，会panic。</p>
+<p>可以尝试用<code>v, ok := xx.(xx)</code>预先判断或者用<code>switch xx.(type)</code>来循环判断。</p>
+<p>ps： 演示代码不具有实际意义</p>
+<p><strong>复合类型获取字段类型，方法</strong></p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;reflect&#34;</span>
+)
+
+<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">t1</span> <span style="color:#66d9ef">struct</span> {
+	<span style="color:#a6e22e">A</span> <span style="color:#66d9ef">string</span>
+	<span style="color:#a6e22e">B</span> <span style="color:#66d9ef">int</span>
+}
+
+<span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">t</span> <span style="color:#a6e22e">t1</span>) <span style="color:#a6e22e">Fn</span>() {
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;this is t1&#39;s method&#34;</span>)
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+
+	<span style="color:#a6e22e">st</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">t1</span>{
+		<span style="color:#a6e22e">A</span>: <span style="color:#e6db74">&#34;ss&#34;</span>,
+		<span style="color:#a6e22e">B</span>: <span style="color:#ae81ff">233</span>,
+	}
+
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">t</span> <span style="color:#66d9ef">interface</span>{} = <span style="color:#a6e22e">st</span>
+	
+	<span style="color:#a6e22e">rt</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">t</span>)
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;t&#39;s type&#34;</span>, <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">Name</span>())
+
+	<span style="color:#a6e22e">rv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#a6e22e">t</span>)
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;t&#39;s value&#34;</span>, <span style="color:#a6e22e">rv</span>)
+
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span><span style="color:#f92672">:=</span><span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span>&lt;<span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">NumField</span>(); <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>{
+		<span style="color:#a6e22e">field</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">Field</span>(<span style="color:#a6e22e">i</span>)
+		<span style="color:#a6e22e">value</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rv</span>.<span style="color:#a6e22e">Field</span>(<span style="color:#a6e22e">i</span>).<span style="color:#a6e22e">Interface</span>()
+		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;field&#39;s name: %s, type: %v, value: %v\n&#34;</span>, <span style="color:#a6e22e">field</span>.<span style="color:#a6e22e">Name</span>, <span style="color:#a6e22e">field</span>.<span style="color:#a6e22e">Type</span>, <span style="color:#a6e22e">value</span>)
+	}
+	
+	<span style="color:#75715e">// 反射似乎不检测非导出方法
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span><span style="color:#f92672">:=</span><span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span>&lt;<span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">NumMethod</span>(); <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>{
+		<span style="color:#a6e22e">m</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">Method</span>(<span style="color:#a6e22e">i</span>)
+		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;method&#39;name: %s, type: %v\n&#34;</span>, <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Name</span>, <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Type</span>)
+	}
+
+}
+
+<span style="color:#75715e">// output
+</span><span style="color:#75715e">// t&#39;s type t1
+</span><span style="color:#75715e">// t&#39;s value {ss 233}
+</span><span style="color:#75715e">// field&#39;s name: A, type: string, value: ss
+</span><span style="color:#75715e">// field&#39;s name: B, type: int, value: 233
+</span><span style="color:#75715e">// method&#39;name: Fn, type: func(main.t1)
+</span><span style="color:#75715e"></span>
+</code></pre></div><p><strong>修改原来的值</strong></p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;reflect&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">int</span> = <span style="color:#ae81ff">233</span>
+
+	<span style="color:#75715e">// 指针类型才可以修改值
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">i</span>)
+  <span style="color:#75715e">// 获取原始反射对象
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pe</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Elem</span>()
+
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;type of pe: &#34;</span>, <span style="color:#a6e22e">pe</span>.<span style="color:#a6e22e">Type</span>())
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;can set?&#34;</span>, <span style="color:#a6e22e">pe</span>.<span style="color:#a6e22e">CanSet</span>())
+
+	<span style="color:#a6e22e">pe</span>.<span style="color:#a6e22e">SetInt</span>(<span style="color:#ae81ff">23</span>)
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;after change&#34;</span>, <span style="color:#a6e22e">i</span>)
+}
+
+<span style="color:#75715e">// output
+</span><span style="color:#75715e">// type of pe:  int
+</span><span style="color:#75715e">// can set? true
+</span><span style="color:#75715e">// after change 23
+</span><span style="color:#75715e"></span>
+</code></pre></div><p><strong>动态调用方法</strong></p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;reflect&#34;</span>
+)
+
+<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">t1</span> <span style="color:#66d9ef">struct</span> {
+	<span style="color:#a6e22e">A</span> <span style="color:#66d9ef">string</span>
+	<span style="color:#a6e22e">B</span> <span style="color:#66d9ef">int</span>
+}
+
+<span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">t</span> <span style="color:#a6e22e">t1</span>) <span style="color:#a6e22e">Fn</span>() {
+	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;this is t1&#39;s method&#34;</span>)
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+
+	<span style="color:#a6e22e">st</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">t1</span>{
+		<span style="color:#a6e22e">A</span>: <span style="color:#e6db74">&#34;ss&#34;</span>,
+		<span style="color:#a6e22e">B</span>: <span style="color:#ae81ff">233</span>,
+	}
+
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">t</span> <span style="color:#66d9ef">interface</span>{} = <span style="color:#a6e22e">st</span>
+
+	<span style="color:#a6e22e">rv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(<span style="color:#a6e22e">t</span>)
+
+	<span style="color:#a6e22e">method1</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rv</span>.<span style="color:#a6e22e">MethodByName</span>(<span style="color:#e6db74">&#34;Fn&#34;</span>)
+	<span style="color:#75715e">// Fn方法不需要参数，这里传len为0的[]reflect.Value既可
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">args</span> <span style="color:#f92672">:=</span> make([]<span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">Value</span>, <span style="color:#ae81ff">0</span>)
+	<span style="color:#a6e22e">method1</span>.<span style="color:#a6e22e">Call</span>(<span style="color:#a6e22e">args</span>)
+
+}
+
+<span style="color:#75715e">// output
+</span><span style="color:#75715e">// this is t1&#39;s method
+</span><span style="color:#75715e"></span>
+</code></pre></div><h2 id="reflect-使用场景">reflect 使用场景</h2>
+<p>Emm, 上面的代码很抽象，好像并没有什么卵用。。。所以说反射不是语言实现的必须，只是为了更加灵活，减少一些硬编码。</p>
+<p>这里总结下reflect的使用场景，或许更好理解</p>
+<p><strong>struct tag解析</strong></p>
+<p>json解析， orm框架可以根据结构体的tag信息动态映射字段</p>
+<p><strong>抽象类型</strong></p>
+<p>如fmt一系列方法都使用了interface来传参数，大大减少了代码行数</p>
+<p><strong>动态调用函数</strong></p>
+<p>还没想到实际用处，但感觉很有用</p>
+<p>如gRPC框架会用到？</p>
+<p><strong>判读是否实现了某接口</strong></p>
+<p>example</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IT</span> <span style="color:#66d9ef">interface</span> {
+    <span style="color:#a6e22e">test1</span>()
+}
+
+<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">T</span> <span style="color:#66d9ef">struct</span> {
+    <span style="color:#a6e22e">A</span> <span style="color:#66d9ef">string</span>
+}
+
+<span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>) <span style="color:#a6e22e">test1</span>() {}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#a6e22e">t</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">T</span>{}
+    <span style="color:#a6e22e">ITF</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">TypeOf</span>((<span style="color:#f92672">*</span><span style="color:#a6e22e">IT</span>)(<span style="color:#66d9ef">nil</span>)).<span style="color:#a6e22e">Elem</span>()
+    <span style="color:#a6e22e">tv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">t</span>)
+    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">tv</span>.<span style="color:#a6e22e">Implements</span>(<span style="color:#a6e22e">ITF</span>))
+}
+</code></pre></div><h2 id="什么时候使用reflect">什么时候使用reflect</h2>
+<blockquote>
+<ol>
+<li>为了降低多写代码造成的bug率，做更好的归约和抽象</li>
+<li>为了灵活、好用、方便，做动态解析、调用和处理</li>
+<li>为了代码好看、易读、提高开发效率，补足与动态语言之间的一些差别</li>
+</ol>
+</blockquote>
+<h2 id="注意">注意</h2>
+<p>reflect具有性能问题，但是实际使用中可以先实现功能，后面再考虑优化。</p>
+<p>毕竟性能是个伪命题？</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li>
+<p><a href="https://www.zhihu.com/question/28570203"target="_blank">为什么语言里要提供「反射」功能？</a></p>
+</li>
+<li>
+<p><a href="https://juejin.im/post/5a75a4fb5188257a82110544"target="_blank">Golang的反射reflect深入理解和示例</a></p>
+</li>
+<li>
+<p><a href="https://segmentfault.com/a/1190000016230264"target="_blank">Go Reflect 高级实践</a></p>
+</li>
+</ul>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="tag" href=/tags/go/>go</a></section></div><section class="article navigation"><p><a class="link" href="/tech/linux%E5%90%8E%E5%8F%B0%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1/"><span class="li">&rarr;</span>Linux后台执行任务</a></p></section></div><section id="footer" class="footer"><div class="footer-wrap">
+    <p class="copyright">©2019 lyeka.</p>
+    <p class="powerby"><span>Powered by </span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span> and the </span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p>
+</div></section></div>
+</body>
+
+</html>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml"><url>
-    <loc>http://example.org/categories/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/categories/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/tags/go/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/tech/go-reflect-%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/tags/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/tech/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
+    <loc>http://example.org/categories/%E6%8A%80%E6%9C%AF/</loc><lastmod>2020-03-20T00:00:00+00:00</lastmod></url><url>
     <loc>http://example.org/tags/linux/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/categories/linux/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
     <loc>http://example.org/tech/linux%E5%90%8E%E5%8F%B0%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/tags/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/tech/</loc><lastmod>2020-03-10T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/tags/go/</loc><lastmod>2020-03-09T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/categories/tech/</loc><lastmod>2020-03-09T00:00:00+00:00</lastmod></url><url>
     <loc>http://example.org/tags/%E5%88%86%E5%B8%83%E5%BC%8F/</loc><lastmod>2020-03-09T00:00:00+00:00</lastmod></url><url>
-    <loc>http://example.org/tech/my-first-post/</loc><lastmod>2020-03-09T00:00:00+00:00</lastmod></url></urlset>
+    <loc>http://example.org/tech/%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90%E5%99%A8-/</loc><lastmod>2020-03-09T00:00:00+00:00</lastmod></url></urlset>

@@ -1,23 +1,33 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>go on lyeka&#39;s blog</title>
+    <title>go on Yeka&#39;s Blog</title>
     <link>/tags/go/</link>
-    <description>Recent content in go on lyeka&#39;s blog</description>
+    <description>Recent content in go on Yeka&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <copyright>©2019 lyeka.</copyright>
-    <lastBuildDate>Mon, 09 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 20 Mar 2020 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/tags/go/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Go reflect 使用以及使用场景 </title>
+      <link>/tech/go-reflect-%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/</link>
+      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tech/go-reflect-%E4%BD%BF%E7%94%A8%E4%BB%A5%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/</guid>
+      <description>Go reflect 使用以及使用场景 🌿本文源自各文章的总结，加上自己的一些理解与修改 reflect 是什么 定义 reflect（反射），在计算机学中是指计算机程序在运行时（</description>
+      
+    </item>
+    
+    <item>
       <title>分布式ID生成器</title>
-      <link>/tech/my-first-post/</link>
+      <link>/tech/%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90%E5%99%A8-/</link>
       <pubDate>Mon, 09 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/tech/my-first-post/</guid>
+      <guid>/tech/%E5%88%86%E5%B8%83%E5%BC%8Fid%E7%94%9F%E6%88%90%E5%99%A8-/</guid>
       <description>分布式ID生成器 snowflake sonyflake snowflake twitter开源的分布式ID生成算法。保证在不借助第三方服务或者工具的情况，在多台机器上持续生成 保证唯一性的64位整</description>
       
     </item>
