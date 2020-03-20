@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>linux on lyeka&#39;s blog</title>
+    <link>/tags/linux/</link>
+    <description>Recent content in linux on lyeka&#39;s blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <copyright>©2019 lyeka.</copyright>
+    <lastBuildDate>Tue, 10 Mar 2020 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Linux后台执行任务</title>
+      <link>/tech/linux%E5%90%8E%E5%8F%B0%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1/</link>
+      <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tech/linux%E5%90%8E%E5%8F%B0%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1/</guid>
+      <description>Linux后台执行任务 有时候执行某些脚本/任务耗时比较长，不想一直使其占据终端或者因为终端关闭而受影响（例如网络导致从 服务器断开等），需要将</description>
+      
+    </item>
+    
+  </channel>
+</rss>

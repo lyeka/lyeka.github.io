@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.66.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>分布式ID生成器&nbsp;&ndash;&nbsp;lyeka&#39;s blog</title><link rel="stylesheet" href="/css/core.min.1845c8edbd8e203cec51c9201c00cf69fdf6cb8f8e55f1f5a7bdcaf36843477ad93a9f5439e85942ebe5500230683a3f.css" integrity="sha384-GEXI7b2OIDzsUckgHADPaf32y4&#43;OVfH1p73K82hDR3rZOp9UOehZQuvlUAIwaDo/"><body>
+    <div class="base-body"><section id="header" class="site header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">lyeka's blog</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/categories/">Categories</a><a class="nav item" href="/tags/">Tags</a><a class="nav item" href="/about">About</a><a class="nav item" href="https://gohugo.io/"target="_blank">Hugo</a></nav></div></span></div><div class="site slogan"><span class="title">1%</span></div></section><div id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">分布式ID生成器</h1><p class="article date">Monday, March 9, 2020</p></section><article class="article markdown-body"><h1 id="分布式id生成器">分布式ID生成器</h1>
+<ul>
+<li>snowflake</li>
+<li>sonyflake</li>
+</ul>
+<h2 id="snowflake">snowflake</h2>
+<p>twitter开源的分布式ID生成算法。保证在不借助第三方服务或者工具的情况，在多台机器上持续生成</p>
+<p>保证唯一性的64位整型ID</p>
+<p>Go版本实现：https://github.com/bwmarrin/snowflake</p>
+<h3 id="原理解析">原理解析</h3>
+<h4 id="id组成">ID组成</h4>
+<p>64位划分成四块</p>
+<ul>
+<li>递增序号（12）</li>
+<li>节点ID（5）</li>
+<li>数据中心ID（5）</li>
+<li>时间戳（42）</li>
+</ul>
+<p><strong>数据中心与节点ID</strong></p>
+<p>数据中心对应云服务器是指不同的云服务提供商，如阿里云，亚马逊云？</p>
+<p>节点对应该数据中心下的某台机器？</p>
+<p><strong>时间戳</strong></p>
+<p>使用的时间戳为unix时间戳，时间精度为ms（有待考征），因为位数有限（42），当经过一段时间后第42位（整个ID最高位）会增长为1，该位为64位整型的最高位，导致出现负数。</p>
+<p>所以一般会使用基准时间减少位数，即用unix时间戳减去基准时间当作时间戳，这样可以减少时间戳的长度，延后位数不够导致负数出现的时间。但这个时间一般为几十年，大部分系统需要考虑这点吧。。</p>
+<p>snowflake默认基准时间为1288834974657，即2010/11/4 9:42:54.657。支持自定义。</p>
+<p><strong>递增序号</strong></p>
+<p>单单时间戳不够，因为时间景内（1ms）内可能需要生成多个请求，所以仍需要一个递增序号唯一标识。12位支持1ms内生成4096个唯一ID，当超出时会阻塞（具体看实现）。</p>
+<p>snowflake同样支持自定义该位数，但要受整体id位数保持在64位的限制。</p>
+<h3 id="问题与解决">问题与解决</h3>
+<h4 id="节点id怎么确定和增长">节点ID怎么确定和增长</h4>
+<p>可以使用第三方服务例如mysql生成每台机器的ID，但会增加依赖；</p>
+<p>也可直接写进配置，但无法自动化增长，新建实例需要收到写配置；</p>
+<h4 id="id重复">ID重复</h4>
+<p>可能由于</p>
+<ul>
+<li>机器获取时间出现问题，导致时间回退
+<ul>
+<li>。。修复机器？</li>
+</ul>
+</li>
+<li>基准时间修改（回退）
+<ul>
+<li>不要修改基准时间</li>
+</ul>
+</li>
+<li>重启在时间精度内（1ms），递增序号重复
+<ul>
+<li>大部分系统重启不会在1ms内？</li>
+</ul>
+</li>
+</ul>
+<h2 id="sonyflake">sonyflake</h2>
+<p>索尼开源的分布式唯一ID生成算法，原理应该和snowflake差不多吧， 都是ID分片。</p>
+<p>有空看看</p>
+<p>参考</p>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/a_g6wy4DzkAmc-i1Wen3XA">https://mp.weixin.qq.com/s/a_g6wy4DzkAmc-i1Wen3XA</a></li>
+</ul>
+</article><section class="article labels"><a class="category" href=/categories/tech/>tech</a><a class="tag" href=/tags/%E5%88%86%E5%B8%83%E5%BC%8F/>分布式</a><a class="tag" href=/tags/go/>go</a></section></div><section class="article navigation"><p><a class="link" href="/tech/linux%E5%90%8E%E5%8F%B0%E6%89%A7%E8%A1%8C%E4%BB%BB%E5%8A%A1/"><span class="li">&larr;</span>Linux后台执行任务</a></p></section></div><section id="footer" class="footer"><div class="footer-wrap">
+    <p class="copyright">©2019 lyeka.</p>
+    <p class="powerby"><span>Powered by </span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span> and the </span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p>
+</div></section></div>
+</body>
+
+</html>

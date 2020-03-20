@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.66.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Linux后台执行任务&nbsp;&ndash;&nbsp;lyeka&#39;s blog</title><link rel="stylesheet" href="/css/core.min.1845c8edbd8e203cec51c9201c00cf69fdf6cb8f8e55f1f5a7bdcaf36843477ad93a9f5439e85942ebe5500230683a3f.css" integrity="sha384-GEXI7b2OIDzsUckgHADPaf32y4&#43;OVfH1p73K82hDR3rZOp9UOehZQuvlUAIwaDo/"><body>
+    <div class="base-body"><section id="header" class="site header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">lyeka's blog</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/categories/">Categories</a><a class="nav item" href="/tags/">Tags</a><a class="nav item" href="/about">About</a><a class="nav item" href="https://gohugo.io/"target="_blank">Hugo</a></nav></div></span></div><div class="site slogan"><span class="title">1%</span></div></section><div id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Linux后台执行任务</h1><p class="article date">Tuesday, March 10, 2020</p></section><article class="article markdown-body"><h1 id="linux后台执行任务">Linux后台执行任务</h1>
+<p>有时候执行某些脚本/任务耗时比较长，不想一直使其占据终端或者因为终端关闭而受影响（例如网络导致从</p>
+<p>服务器断开等），需要将其放入后台执行。</p>
+<p>当用户注销（logout）或者网络断开时，终端会收到 HUP（hangup）信号从而关闭其所有子进程。因此，我们的解决办法就有两种途径：要么让进程忽略 HUP 信号，要么让进程运行在新的会话里从而成为不属于此终端的子进程。</p>
+<p>这时候可选下面其中方式让其在后台执行：</p>
+<ul>
+<li>nohup</li>
+<li>&amp;</li>
+<li>setsid</li>
+</ul>
+<h2 id="nohup">nohup</h2>
+<p>用法： 只需要在命令前加上nohup即可</p>
+<p>标准输出和标准错误却省的话会自动重定向输出的nohup.out文件。可加入&amp;将其放入后台执行，并加上<code>&gt; xxx.log  2&gt;&amp;1</code>在命令后面重定向输出</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># nohup &lt;command&gt; &amp; &gt; &lt;filename&gt; 2&gt;&amp;1</span>
+nohup ping www.baidu.com &amp; &gt; out.log 2&gt;&amp;<span style="color:#ae81ff">1</span>
+</code></pre></div><h2 id="heading">&amp;</h2>
+<p>用法：在命令后加入&amp;即可</p>
+<p>标准输出和标准错误缺省的话还是会输出到终端，终端关闭的话后台任务也是会终止的，故一般搭配nohup使用比较方便</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># &lt;command&gt; &amp;</span>
+ping www.baidu.com &amp;
+</code></pre></div><h2 id="setsid">setsid</h2>
+<p>用法：在命令前加入setsid即可</p>
+<p>原理：将程序/任务在一个新的session中执行，即不属于当前终端的子进程，就不会受到当前HUP的影响</p>
+<h2 id="管理后台任务">管理后台任务</h2>
+<p>使用nohug/&amp; 的话会将任务放入后台任务队列，下面介绍如何管理它们</p>
+<h3 id="查看">查看</h3>
+<p><code>jobs</code> 加上-l还可以看其任务的进程号</p>
+<h3 id="将其前台执行">将其前台执行</h3>
+<p><code>fg &lt;job id&gt;</code></p>
+<h3 id="将其后台执行">将其后台执行</h3>
+<p><code>bg &lt;job id&gt;</code></p>
+<h3 id="终止">终止</h3>
+<p>如果当前终端未关闭的话，使用jobs可以查看当前的后台任务队列。这时候可以使用fg将其调到前台执行，在执行对应的终止操作，或者jobs -l拿到进程号，再执行kill等操作。</p>
+<p>如果终端已经关闭，再次使用jobs是看不到后台的任务队列的，这时候只可以使用ps等找到对应的进程号进行终止操作了。</p>
+<h2 id="重定向输出">重定向输出</h2>
+<p>0， 1， 2分别代表着标准输入，标准输出，标准错误三个文件描述符</p>
+<p>在命令后使用 <code>&gt; &lt;filename&gt; </code> 等同于 <code>1 &gt; &lt;filename&gt;</code>，即将标准输出重定向输出到对应的文件</p>
+<p>而 2&gt;&amp;1 代表将标准错误重定向到标准输出</p>
+<p>所以<code>&lt;command&gt; &gt; out.log 2&gt;&amp;1</code>代表将标命令输出和错误输出都重定向打印到out.log文件</p>
+<p>参考</p>
+<ul>
+<li><a href="https://www.ibm.com/developerworks/cn/linux/l-cn-nohup/index.html#nohup">https://www.ibm.com/developerworks/cn/linux/l-cn-nohup/index.html#nohup</a></li>
+<li><a href="https://blog.csdn.net/qq_31821675/article/details/78246808">https://blog.csdn.net/qq_31821675/article/details/78246808</a></li>
+<li><a href="https://blog.csdn.net/u011630575/article/details/52151995">https://blog.csdn.net/u011630575/article/details/52151995</a></li>
+</ul>
+</article><section class="article labels"><a class="category" href=/categories/linux/>linux</a><a class="tag" href=/tags/linux/>linux</a></section></div><section class="article navigation"><p><a class="link" href="/tech/my-first-post/"><span class="li">&rarr;</span>分布式ID生成器</a></p></section></div><section id="footer" class="footer"><div class="footer-wrap">
+    <p class="copyright">©2019 lyeka.</p>
+    <p class="powerby"><span>Powered by </span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span> and the </span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p>
+</div></section></div>
+</body>
+
+</html>
