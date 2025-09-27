@@ -1,4 +1,4 @@
-baseURL = 'https://example.org/'
+baseURL = 'https://lyeka.github.io/lyeka-blog/'
 languageCode = 'en-us'
 title = 'Lyeka'
 theme = "hugo-toigian"
