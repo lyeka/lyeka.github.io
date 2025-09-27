@@ -1,63 +1,21 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>AI on Lyeka</title><link>https://example.org/tags/ai/</link><description>Recent content in AI on Lyeka</description><generator>Hugo</generator><language>en-us</language><managingEditor>augustr2017@163.com (Lyeka)</managingEditor><webMaster>augustr2017@163.com (Lyeka)</webMaster><lastBuildDate>Fri, 26 Sep 2025 18:33:15 +0800</lastBuildDate><atom:link href="https://example.org/tags/ai/index.xml" rel="self" type="application/rss+xml"/><item><title>Deep Research 项目研究</title><link>https://example.org/posts/deep-research/</link><pubDate>Fri, 26 Sep 2025 18:33:15 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author><guid>https://example.org/posts/deep-research/</guid><description>&lt;p&gt;研究对象&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;LangChain Open Deep Research&lt;/li&gt;
-&lt;li&gt;ROMA Deep Research&lt;/li&gt;
-&lt;li&gt;Tongyi Deep Research&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="langchain-open-deep-research"&gt;LangChain Open Deep Research&lt;/h2&gt;
-&lt;h3 id="架构"&gt;架构&lt;/h3&gt;
-&lt;p&gt;&lt;img src="https://example.org/img/deep_research_read/1.png" alt=""&gt;
-该项目将 任务划分成了3个阶段&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Scope：明确研究范围&lt;/li&gt;
-&lt;li&gt;Research：核心模块，执行研究任务&lt;/li&gt;
-&lt;li&gt;Write：输出最终报告&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h4 id="graph-node"&gt;Graph Node&lt;/h4&gt;
-&lt;p&gt;&lt;img src="https://example.org/img/deep_research_read/2.png" alt=""&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Scope Phase 包含两个节点：
-&lt;ul&gt;
-&lt;li&gt;clarify_with_user node： 当用户的任务比较模糊，缺失足够的上下文信息时，会和用户确认收集额外信息，以得到一个相对清晰的任务。&lt;/li&gt;
-&lt;li&gt;write_research_brief node： 根据与用户之前的交互（包括问题澄清，在先前的研究报告上进一步探索等）生成一个研究简报。生成简报主要是为了减少噪音，整合上下文，后续的研究过程会在这个简报上进行。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Research Phase 这是一个 multi agent 的实现：
-&lt;ul&gt;
-&lt;li&gt;Supervisor Sub Graph：确定研究简报是否可以分解为独立的子主题，并将任务分配给具有独立上下文窗口的子代理
-&lt;ul&gt;
-&lt;li&gt;supervisor node&lt;/li&gt;
-&lt;li&gt;supervisor_tools node：工具节点，包含下面工具
-&lt;ul&gt;
-&lt;li&gt;Think Tool：反思工具，在执行 ConductResearch 前会进行思考现在有了什么信息，还需要哪些信息等，用于规划后续 ConductResearch 行为&lt;/li&gt;
-&lt;li&gt;ConductResearch Tool ：调用 Research Sub-Agents 进行检索与研究，支持并发调以调研不同的 topic&lt;/li&gt;
-&lt;li&gt;ResearchComplete Tool：虚拟工具，作为 Research Phase 终结的条件（除了该工具，还有研究迭代次数限制，无工具调用工具会终止 Research 流程）&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Researcher Sub Graph ：根据 supervisor 分配的主题进行研究
-&lt;ul&gt;
-&lt;li&gt;researcher node ：&lt;/li&gt;
-&lt;li&gt;researcher_tools node: 工具节点，包含下面工具
-&lt;ul&gt;
-&lt;li&gt;Think Tool： 和 Supervisor 类似，也有一个 ThinkTool 来规划后续 search 流程&lt;/li&gt;
-&lt;li&gt;Search Tools：搜索工具，内部支持了 TAVILY 搜索， OpenAI 和ANTHROPIC 的 Web Search 功能&lt;/li&gt;
-&lt;li&gt;MCP Tools：支持通过 MCP 协议动态扩展 Researcher 的工具与能力&lt;/li&gt;
-&lt;li&gt;ResearchComplete Tool： 作为 Researcher 终结的条件&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;compress_research_node: 当子代理完成任务后，会将收集到的信息进行进一步撰写详细且干净的回答返回给 supervisor&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Write Phase
-&lt;ul&gt;
-&lt;li&gt;final_report_generation node：当 supervisor 收集到足够的信息结束研究任务后，该节点结合研究简报撰写最后输出的报告&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id="llm"&gt;LLM&lt;/h3&gt;
-&lt;p&gt;该项目支持了 OpenAI、ANTHROPIC 和 Google 系列的 LLM（也可以扩展使用 Open Router 或者本地模型） ，同时允许在不同的节点配置使用不同的模型去处理任务
-默认配置如下&lt;/p&gt;</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AI on Lyeka</title>
+    <link>https://example.org/tags/ai/</link>
+    <description>Recent content in AI on Lyeka</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <managingEditor>augustr2017@163.com (Lyeka)</managingEditor>
+    <webMaster>augustr2017@163.com (Lyeka)</webMaster>
+    <lastBuildDate>Fri, 26 Sep 2025 18:33:15 +0800</lastBuildDate>
+    <atom:link href="https://example.org/tags/ai/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Deep Research 项目研究</title>
+      <link>https://example.org/posts/deep-research/</link>
+      <pubDate>Fri, 26 Sep 2025 18:33:15 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
+      <guid>https://example.org/posts/deep-research/</guid>
+      <description>&lt;p&gt;研究对象&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;LangChain Open Deep Research&lt;/li&gt;&#xA;&lt;li&gt;ROMA Deep Research&lt;/li&gt;&#xA;&lt;li&gt;Tongyi Deep Research&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;langchain-open-deep-research&#34;&gt;LangChain Open Deep Research&lt;/h2&gt;&#xA;&lt;h3 id=&#34;架构&#34;&gt;架构&lt;/h3&gt;&#xA;&lt;p&gt;&lt;img src=&#34;https://example.org/img/deep_research_read/1.png&#34; alt=&#34;&#34;&gt;&#xA;该项目将 任务划分成了3个阶段&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Scope：明确研究范围&lt;/li&gt;&#xA;&lt;li&gt;Research：核心模块，执行研究任务&lt;/li&gt;&#xA;&lt;li&gt;Write：输出最终报告&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h4 id=&#34;graph-node&#34;&gt;Graph Node&lt;/h4&gt;&#xA;&lt;p&gt;&lt;img src=&#34;https://example.org/img/deep_research_read/2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Scope Phase 包含两个节点：&#xA;&lt;ul&gt;&#xA;&lt;li&gt;clarify_with_user node： 当用户的任务比较模糊，缺失足够的上下文信息时，会和用户确认收集额外信息，以得到一个相对清晰的任务。&lt;/li&gt;&#xA;&lt;li&gt;write_research_brief node： 根据与用户之前的交互（包括问题澄清，在先前的研究报告上进一步探索等）生成一个研究简报。生成简报主要是为了减少噪音，整合上下文，后续的研究过程会在这个简报上进行。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;Research Phase 这是一个 multi agent 的实现：&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Supervisor Sub Graph：确定研究简报是否可以分解为独立的子主题，并将任务分配给具有独立上下文窗口的子代理&#xA;&lt;ul&gt;&#xA;&lt;li&gt;supervisor node&lt;/li&gt;&#xA;&lt;li&gt;supervisor_tools node：工具节点，包含下面工具&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Think Tool：反思工具，在执行 ConductResearch 前会进行思考现在有了什么信息，还需要哪些信息等，用于规划后续 ConductResearch 行为&lt;/li&gt;&#xA;&lt;li&gt;ConductResearch Tool ：调用 Research Sub-Agents  进行检索与研究，支持并发调以调研不同的 topic&lt;/li&gt;&#xA;&lt;li&gt;ResearchComplete Tool：虚拟工具，作为 Research Phase 终结的条件（除了该工具，还有研究迭代次数限制，无工具调用工具会终止 Research 流程）&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;Researcher Sub Graph ：根据 supervisor 分配的主题进行研究&#xA;&lt;ul&gt;&#xA;&lt;li&gt;researcher node ：&lt;/li&gt;&#xA;&lt;li&gt;researcher_tools node: 工具节点，包含下面工具&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Think Tool： 和 Supervisor 类似，也有一个 ThinkTool 来规划后续 search 流程&lt;/li&gt;&#xA;&lt;li&gt;Search Tools：搜索工具，内部支持了 TAVILY 搜索， OpenAI 和ANTHROPIC 的 Web Search 功能&lt;/li&gt;&#xA;&lt;li&gt;MCP Tools：支持通过 MCP 协议动态扩展 Researcher 的工具与能力&lt;/li&gt;&#xA;&lt;li&gt;ResearchComplete Tool： 作为 Researcher  终结的条件&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;compress_research_node:  当子代理完成任务后，会将收集到的信息进行进一步撰写详细且干净的回答返回给 supervisor&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;Write Phase&#xA;&lt;ul&gt;&#xA;&lt;li&gt;final_report_generation node：当 supervisor 收集到足够的信息结束研究任务后，该节点结合研究简报撰写最后输出的报告&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h3 id=&#34;llm&#34;&gt;LLM&lt;/h3&gt;&#xA;&lt;p&gt;该项目支持了 OpenAI、ANTHROPIC  和 Google 系列的 LLM（也可以扩展使用 Open Router 或者本地模型） ，同时允许在不同的节点配置使用不同的模型去处理任务&#xA;默认配置如下&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
