@@ -1,4 +1,4 @@
-baseURL = 'https://lyeka.github.io'
+baseURL = 'https://lyeka.github.io/'
 languageCode = 'en-us'
 title = 'Lyeka'
 theme = "hugo-toigian"
