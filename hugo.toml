@@ -1,5 +1,4 @@
 baseURL = 'https://lyeka.github.io'
-canonifyURLs = false
 languageCode = 'en-us'
 title = 'Lyeka'
 theme = "hugo-toigian"
