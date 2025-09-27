@@ -1,6 +1,5 @@
-baseURL = 'https://lyeka.github.io/lyeka-blog/'
+baseURL = 'https://lyeka.github.io'
 canonifyURLs = false
-relativeURLs = true
 languageCode = 'en-us'
 title = 'Lyeka'
 theme = "hugo-toigian"
