@@ -310,6 +310,9 @@
         
         <a href="/tags/agent/" id="tag">Agent</a>
       
+        
+        <a href="/tags/deep-research/" id="tag">Deep Research</a>
+      
     </div>
   
 
@@ -323,36 +326,42 @@
   <ol>
     <li><a href="#langchain-open-deep-research">LangChain Open Deep Research</a>
       <ol>
-        <li><a href="#架构">架构</a>
-          <ol>
-            <li><a href="#graph-node">Graph Node</a></li>
-          </ol>
-        </li>
+        <li><a href="#架构">架构</a></li>
         <li><a href="#llm">LLM</a></li>
         <li><a href="#think-tool">Think Tool</a></li>
-        <li><a href="#prompt--上下文工程">Prompt &amp; 上下文工程</a></li>
+        <li><a href="#prompt--上下文工程">Prompt &amp; 上下文工程</a>
+          <ol>
+            <li><a href="#上下文隔离">上下文隔离</a></li>
+            <li><a href="#上下文压缩">上下文压缩</a></li>
+            <li><a href="#上下文剪枝">上下文剪枝</a></li>
+          </ol>
+        </li>
+        <li><a href="#memory">Memory</a></li>
       </ol>
     </li>
-    <li><a href="#question">Question：</a></li>
-    <li><a href="#benchmark-evaluation">Benchmark Evaluation</a>
-      <ol>
-        <li><a href="#亮点">亮点</a></li>
-        <li><a href="#技术栈">技术栈</a></li>
-      </ol>
-    </li>
+    <li><a href="#roma">ROMA</a></li>
+    <li><a href="#tongyi">Tongyi</a></li>
   </ol>
 </nav></div>
       </details>
     
   
 </div>
-<div class="content"><p>研究对象</p>
+<div class="content"><p>本文研究 AI 应用领域中的 Deep Research 方向，主要涉及下面三个开源项目</p>
 <ul>
-<li>LangChain Open Deep Research</li>
-<li>ROMA Deep Research</li>
-<li>Tongyi Deep Research</li>
+<li><a href="https://github.com/langchain-ai/open_deep_research">LangChain Open Deep Research</a></li>
+<li><a href="https://github.com/sentient-agi/ROMA">ROMA Deep Research</a></li>
+<li><a href="https://github.com/Alibaba-NLP/DeepResearch">Tongyi Deep Research</a></li>
 </ul>
 <h2 id="langchain-open-deep-research">LangChain Open Deep Research</h2>
+ 
+
+  
+
+<blockquote class="my-5 p-4 rounded border-solid border-2 border-foam">
+  本文分析基于 Git commit b419df8d33b4f39ff5b2a34527bb6b85d0ede5d0 版本
+</blockquote>
+
 <h3 id="架构">架构</h3>
 <p><img src="/img/deep_research_read/1.png" alt="">
 该项目将 任务划分成了3个阶段</p>
@@ -361,8 +370,10 @@
 <li>Research：核心模块，执行研究任务</li>
 <li>Write：输出最终报告</li>
 </ul>
-<h4 id="graph-node">Graph Node</h4>
+<p>Graph Node</p>
 <p><img src="/img/deep_research_read/2.png" alt=""></p>
+<p>Research Node</p>
+<p><img src="/img/deep_research_read/3.png" alt=""></p>
 <ul>
 <li>Scope Phase 包含两个节点：
 <ul>
@@ -428,16 +439,17 @@ Think Tool  虽然名称是叫工具，但它并不像其它工具（如搜索�
 </span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Do</span> <span class="n">I</span> <span class="n">have</span> <span class="n">enough</span> <span class="n">to</span> <span class="n">answer</span> <span class="n">the</span> <span class="n">question</span> <span class="n">comprehensively</span><span class="err">?</span>
 </span></span><span class="line"><span class="cl"><span class="o">-</span> <span class="n">Should</span> <span class="n">I</span> <span class="n">search</span> <span class="n">more</span> <span class="ow">or</span> <span class="n">provide</span> <span class="n">my</span> <span class="n">answer</span><span class="err">?</span>
 </span></span><span class="line"><span class="cl"><span class="o">&lt;/</span><span class="n">Show</span> <span class="n">Your</span> <span class="n">Thinking</span><span class="o">&gt;</span>
-</span></span></code></pre></div><p>更多关于  Think Tool 的信息可以参考 <a href="https://www.anthropic.com/engineering/claude-think-tool"># The &ldquo;think&rdquo; tool: Enabling Claude to stop and think in complex tool use situations</a> 这篇文章，里面提到了使用  Think Tool  的收益以及怎么怎么使用 Think Tool 。</p>
+</span></span></code></pre></div><p>更多关于  Think Tool 的信息可以参考 <a href="https://www.anthropic.com/engineering/claude-think-tool"># The &ldquo;think&rdquo; tool: Enabling Claude to stop and think in complex tool use situations</a> 这篇文章，里面提到了使用  Think Tool  的收益以及如何使用 Think Tool 。</p>
 <h3 id="prompt--上下文工程">Prompt &amp; 上下文工程</h3>
 <p>该项目使用的 Prompt 都在 <a href="https://github.com/langchain-ai/open_deep_research/blob/main/src/open_deep_research/prompts.py">prompts</a> 这个文件，这里不展开描述。</p>
-<p>上下文隔离
-Multi Agent 除了可以并发进行研究任务提高效率外，另外一个好处就是隔离了上下文，这是一个常见的有效管理上下文的手段。每个 Sub Agent 在给定的 topic 下工作，并不携带主线程之间的冗余信息，sub agent 有更大更聚焦的上下文专注自身任务的执行。</p>
-<p>上下文压缩
-在生产简报这一步其实算是上下文压缩的一种策略，其移除了与用户的对话历史，让研究任务只关注于这份简报。
+<p>这里着重讲一下上下文中的一些策略。</p>
+<h4 id="上下文隔离">上下文隔离</h4>
+<p>Multi Agent 除了可以并发进行研究任务提高效率外，另外一个好处就是隔离了上下文，这是一个常见的有效管理上下文的手段。每个 Sub Agent 在给定的 topic 下工作，并不携带主线程之间的冗余信息，sub agent 有更大更聚焦的上下文专注自身任务的执行。</p>
+<h4 id="上下文压缩">上下文压缩</h4>
+<p>在生产简报这一步其实算是上下文压缩的一种策略，其移除了与用户的对话历史，让研究任务只关注于这份简报。
 Research sub agent 在任务结束后，还会对过程信息进行压缩返回给到 supervisor 节点以避免  supervisor 上下文过度膨胀。</p>
-<p>上下文剪枝
-当上下文超过 LLM context 限制时，agent 会尝试下面这些剪枝策略缩减上下文来重新执行任务</p>
+<h4 id="上下文剪枝">上下文剪枝</h4>
+<p>当上下文超过 LLM context 限制时，agent 会尝试下面这些剪枝策略缩减上下文来重新执行任务</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># compress_research 阶段如果上下文超长则截断消息历史记录，删除到最后一条AI消息。</span>
 </span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">is_token_limit_exceeded</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">configurable</span><span class="o">.</span><span class="n">research_model</span><span class="p">):</span>  
@@ -478,14 +490,12 @@ Research sub agent 在任务结束后，还会对过程信息进行压缩返回�
 </span></span><span class="line"><span class="cl">    <span class="c1"># Truncate findings and retry  </span>
 </span></span><span class="line"><span class="cl">    <span class="n">findings</span> <span class="o">=</span> <span class="n">findings</span><span class="p">[:</span><span class="n">findings_token_limit</span><span class="p">]</span>  
 </span></span><span class="line"><span class="cl">    <span class="k">continue</span>
-</span></span></code></pre></div><p>目前该项目没有使用到长期（外部）记忆 机制。Deep Research 这类项目目前基本以对话加一次性任务的形式呈现，没有太多引入长期记忆的需求。如果做成平台，需要结合用户偏好、历史报告等特性时才有接入长期记忆的必要性。</p>
-<h2 id="question">Question：</h2>
-<ul>
-<li>各种类型Message（System、AI、Human、Tool、Chat &hellip;) 的区别以及使用场景？</li>
-</ul>
-<h2 id="benchmark-evaluation">Benchmark Evaluation</h2>
-<h3 id="亮点">亮点</h3>
-<h3 id="技术栈">技术栈</h3>
+</span></span></code></pre></div><h3 id="memory">Memory</h3>
+<p>目前该项目没有使用到长期（外部）记忆 机制。Deep Research 这类项目目前基本以对话加一次性任务的形式呈现，没有太多引入长期记忆的需求。如果做成平台，需要结合用户偏好、历史报告等特性时才有接入长期记忆的必要性。</p>
+<h2 id="roma">ROMA</h2>
+<p>TODO</p>
+<h2 id="tongyi">Tongyi</h2>
+<p>TODO</p>
 </div><div class="flex items-center justify-center" style="min-height:120px;">
     <p>-- End --</p>
   </div>

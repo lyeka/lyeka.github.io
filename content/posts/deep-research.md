@@ -1,18 +1,20 @@
 +++
 date = '2025-09-26T18:33:15+08:00'
 title = 'Deep Research 项目研究'
-tags = ['AI','Agent']
+tags = ['AI','Agent','Deep Research']
 +++
 
-研究对象
-- LangChain Open Deep Research
-- ROMA Deep Research
-- Tongyi Deep Research
-
+本文研究 AI 应用领域中的 Deep Research 方向，主要涉及下面三个开源项目 
+- [LangChain Open Deep Research](https://github.com/langchain-ai/open_deep_research)
+- [ROMA Deep Research](https://github.com/sentient-agi/ROMA)
+- [Tongyi Deep Research](https://github.com/Alibaba-NLP/DeepResearch)
 
 
 
 ## LangChain Open Deep Research
+{{< quote info >}}
+本文分析基于 Git commit b419df8d33b4f39ff5b2a34527bb6b85d0ede5d0 版本
+{{< /quote >}}
 ### 架构
 ![](/img/deep_research_read/1.png)
 该项目将 任务划分成了3个阶段
@@ -20,10 +22,15 @@ tags = ['AI','Agent']
 - Research：核心模块，执行研究任务
 - Write：输出最终报告
 
-
-#### Graph Node
+Graph Node
 
 ![](/img/deep_research_read/2.png)
+
+
+Research Node
+
+![](/img/deep_research_read/3.png)
+
 
 - Scope Phase 包含两个节点：
 	- clarify_with_user node： 当用户的任务比较模糊，缺失足够的上下文信息时，会和用户确认收集额外信息，以得到一个相对清晰的任务。
@@ -77,22 +84,24 @@ After each search tool call, use think_tool to analyze the results:
 ```
 
 
-更多关于  Think Tool 的信息可以参考 [# The "think" tool: Enabling Claude to stop and think in complex tool use situations](https://www.anthropic.com/engineering/claude-think-tool) 这篇文章，里面提到了使用  Think Tool  的收益以及怎么怎么使用 Think Tool 。
+更多关于  Think Tool 的信息可以参考 [# The "think" tool: Enabling Claude to stop and think in complex tool use situations](https://www.anthropic.com/engineering/claude-think-tool) 这篇文章，里面提到了使用  Think Tool  的收益以及如何使用 Think Tool 。
 
 ###  Prompt & 上下文工程
 该项目使用的 Prompt 都在 [prompts](https://github.com/langchain-ai/open_deep_research/blob/main/src/open_deep_research/prompts.py) 这个文件，这里不展开描述。
 
 
+这里着重讲一下上下文中的一些策略。
 
- 上下文隔离
+#### 上下文隔离
  Multi Agent 除了可以并发进行研究任务提高效率外，另外一个好处就是隔离了上下文，这是一个常见的有效管理上下文的手段。每个 Sub Agent 在给定的 topic 下工作，并不携带主线程之间的冗余信息，sub agent 有更大更聚焦的上下文专注自身任务的执行。
 
-上下文压缩
+#### 上下文压缩
 在生产简报这一步其实算是上下文压缩的一种策略，其移除了与用户的对话历史，让研究任务只关注于这份简报。
 Research sub agent 在任务结束后，还会对过程信息进行压缩返回给到 supervisor 节点以避免  supervisor 上下文过度膨胀。
 
-上下文剪枝
+#### 上下文剪枝
 当上下文超过 LLM context 限制时，agent 会尝试下面这些剪枝策略缩减上下文来重新执行任务
+
 ```python
 
 # compress_research 阶段如果上下文超长则截断消息历史记录，删除到最后一条AI消息。
@@ -139,28 +148,16 @@ if is_token_limit_exceeded(e, configurable.final_report_model):
     continue
 ```
 
- 
+### Memory
 目前该项目没有使用到长期（外部）记忆 机制。Deep Research 这类项目目前基本以对话加一次性任务的形式呈现，没有太多引入长期记忆的需求。如果做成平台，需要结合用户偏好、历史报告等特性时才有接入长期记忆的必要性。
 
 
-
-## Question：
-- 各种类型Message（System、AI、Human、Tool、Chat ...) 的区别以及使用场景？
-
-
-## Benchmark Evaluation
-### 亮点
+## ROMA
+TODO
 
 
-
-### 技术栈
-
-
-
-
-
-
-
+## Tongyi
+TODO
 
 
 
