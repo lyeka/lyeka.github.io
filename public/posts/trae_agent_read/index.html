@@ -95,6 +95,9 @@
 
   
   
+
+
+  
   <script
     async
     defer
@@ -311,7 +314,12 @@
         <summary>Table of contents</summary>
         <div id="toc-list"><nav id="TableOfContents">
   <ol>
-    <li><a href="#项目概览">项目概览</a></li>
+    <li><a href="#项目概览">项目概览</a>
+      <ol>
+        <li><a href="#目录结构">目录结构</a></li>
+        <li><a href="#关系图谱">关系图谱</a></li>
+      </ol>
+    </li>
     <li><a href="#核心流程">核心流程</a>
       <ol>
         <li><a href="#状态转换">状态转换</a></li>
@@ -319,29 +327,50 @@
     </li>
     <li><a href="#工具">工具</a>
       <ol>
-        <li><a href="#ckg-代码知识图谱">CKG 代码知识图谱</a>
+        <li><a href="#ckg-tool">CKG Tool</a>
           <ol>
+            <li><a href="#ckg-schema">CKG Schema</a></li>
             <li><a href="#构建逻辑">构建逻辑</a></li>
           </ol>
         </li>
-        <li><a href="#bash">Bash</a></li>
+        <li><a href="#bash--tool">Bash  Tool</a>
+          <ol>
+            <li><a href="#sentinel机制">Sentinel机制</a></li>
+          </ol>
+        </li>
+        <li><a href="#edit-tool">Edit Tool</a>
+          <ol>
+            <li><a href="#文件路径校验">文件路径校验</a></li>
+            <li><a href="#结果输出">结果输出</a></li>
+          </ol>
+        </li>
+        <li><a href="#sequential-thinking-tool">Sequential Thinking Tool</a>
+          <ol>
+            <li><a href="#prompt">Prompt</a></li>
+            <li><a href="#结构化思考">结构化思考</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
+    <li><a href="#评估">评估</a></li>
   </ol>
 </nav></div>
       </details>
     
   
 </div>
-<div class="content"> 
+<div class="content"><h2 id="项目概览">项目概览</h2>
+ 
 
   
 
 <blockquote class="my-5 p-4 rounded border-solid border-2 border-foam">
-  本文分析基于 Git commit 2cb657823bc5f9bdf276a69d2bcdd60ec389de46 版本
+  项目地址：<a href="https://github.com/bytedance/trae-agent">trae-agent</a>
+本文分析基于 Git commit 2cb657823bc5f9bdf276a69d2bcdd60ec389de46 版本
 </blockquote>
 
-<h2 id="项目概览">项目概览</h2>
+<p>Trae agent 是字节开源的 LLM Agent，用于解决通用软件领域问题。项目包含了 UI (CLI) 和 Agent 部分，本文着重研究核心的  Agent 部分。</p>
+<h3 id="目录结构">目录结构</h3>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">trae-agent/
 </span></span><span class="line"><span class="cl">├── trae_agent/                       <span class="c1"># 核心包目录</span>
 </span></span><span class="line"><span class="cl">│   ├── agent/                        <span class="c1"># Agent核心逻辑</span>
@@ -403,76 +432,75 @@
 </span></span><span class="line"><span class="cl">├── pyproject.toml                    <span class="c1"># Python项目配置</span>
 </span></span><span class="line"><span class="cl">├── trae_config.yaml.example          <span class="c1"># 配置模板</span>
 </span></span><span class="line"><span class="cl">└── README.md                         <span class="c1"># 项目说明</span>
-</span></span></code></pre></div><p>关系图谱
-
-<div class="mermaid" align="center">
-graph TB
+</span></span></code></pre></div><h3 id="关系图谱">关系图谱</h3>
+<pre class="mermaid">
+    graph TB
     %% 外部接口层
-    CLI[CLI Interface<br/>trae_agent/cli.py] --> Agent[Agent<br/>trae_agent/agent/agent.py]
-    Server[FastAPI Server<br/>server/] --> Agent
+    CLI[CLI Interface&lt;br/&gt;trae_agent/cli.py] --&gt; Agent[Agent&lt;br/&gt;trae_agent/agent/agent.py]
+    Server[FastAPI Server&lt;br/&gt;server/] --&gt; Agent
     
     %% 代理层
-    Agent --> TraeAgent[TraeAgent<br/>trae_agent/agent/trae_agent.py]
-    Agent --> BaseAgent[BaseAgent<br/>trae_agent/agent/base_agent.py]
-    TraeAgent -.-> BaseAgent
+    Agent --&gt; TraeAgent[TraeAgent&lt;br/&gt;trae_agent/agent/trae_agent.py]
+    Agent --&gt; BaseAgent[BaseAgent&lt;br/&gt;trae_agent/agent/base_agent.py]
+    TraeAgent -.-&gt; BaseAgent
     
     %% 配置层
-    Config[Configuration<br/>trae_agent/utils/config.py] --> Agent
-    Config --> TraeAgent
+    Config[Configuration&lt;br/&gt;trae_agent/utils/config.py] --&gt; Agent
+    Config --&gt; TraeAgent
     
     %% LLM 客户端层
-    BaseAgent --> LLMClient[LLM Client<br/>trae_agent/utils/llm_clients/]
-    LLMClient --> Anthropic[anthropic_client.py]
-    LLMClient --> OpenAI[openai_client.py]
-    LLMClient --> Google[google_client.py]
-    LLMClient --> Ollama[ollama_client.py]
-    LLMClient --> Azure[azure_client.py]
-    LLMClient --> Doubao[doubao_client.py]
-    LLMClient --> OpenRouter[openrouter_client.py]
+    BaseAgent --&gt; LLMClient[LLM Client&lt;br/&gt;trae_agent/utils/llm_clients/]
+    LLMClient --&gt; Anthropic[anthropic_client.py]
+    LLMClient --&gt; OpenAI[openai_client.py]
+    LLMClient --&gt; Google[google_client.py]
+    LLMClient --&gt; Ollama[ollama_client.py]
+    LLMClient --&gt; Azure[azure_client.py]
+    LLMClient --&gt; Doubao[doubao_client.py]
+    LLMClient --&gt; OpenRouter[openrouter_client.py]
     
     %% 工具执行层
-    BaseAgent --> ToolExecutor[Tool Executor<br/>trae_agent/tools/base.py]
-    BaseAgent --> DockerToolExecutor[Docker Tool Executor<br/>trae_agent/tools/docker_tool_executor.py]
+    BaseAgent --&gt; ToolExecutor[Tool Executor&lt;br/&gt;trae_agent/tools/base.py]
+    BaseAgent --&gt; DockerToolExecutor[Docker Tool Executor&lt;br/&gt;trae_agent/tools/docker_tool_executor.py]
     
-    ToolExecutor --> ToolRegistry[Tools Registry<br/>trae_agent/tools/__init__.py]
-    DockerToolExecutor --> ToolRegistry
+    ToolExecutor --&gt; ToolRegistry[Tools Registry&lt;br/&gt;trae_agent/tools/__init__.py]
+    DockerToolExecutor --&gt; ToolRegistry
     
     %% 工具实现层
-    ToolRegistry --> BashTool[Bash Tool]
-    ToolRegistry --> EditTool[Text Editor Tool]
-    ToolRegistry --> JSONEditTool[JSON Edit Tool]
-    ToolRegistry --> ThinkingTool[Sequential Thinking Tool]
-    ToolRegistry --> TaskDoneTool[Task Done Tool]
-    ToolRegistry --> CKGTool[Code Knowledge Graph Tool]
+    ToolRegistry --&gt; BashTool[Bash Tool]
+    ToolRegistry --&gt; EditTool[Text Editor Tool]
+    ToolRegistry --&gt; JSONEditTool[JSON Edit Tool]
+    ToolRegistry --&gt; ThinkingTool[Sequential Thinking Tool]
+    ToolRegistry --&gt; TaskDoneTool[Task Done Tool]
+    ToolRegistry --&gt; CKGTool[Code Knowledge Graph Tool]
     
     %% MCP 工具层
-    TraeAgent --> MCPClient[MCP Client<br/>trae_agent/utils/mcp_client.py]
-    MCPClient --> MCPTool[MCP Tools<br/>trae_agent/tools/mcp_tool.py]
+    TraeAgent --&gt; MCPClient[MCP Client&lt;br/&gt;trae_agent/utils/mcp_client.py]
+    MCPClient --&gt; MCPTool[MCP Tools&lt;br/&gt;trae_agent/tools/mcp_tool.py]
     
     %% Docker 管理层
-    BaseAgent --> DockerManager[Docker Manager<br/>trae_agent/agent/docker_manager.py]
+    BaseAgent --&gt; DockerManager[Docker Manager&lt;br/&gt;trae_agent/agent/docker_manager.py]
     
     %% 控制台层
-    Agent --> CLIConsole[CLI Console<br/>trae_agent/utils/cli/]
-    CLIConsole --> SimpleConsole[Simple Console]
-    CLIConsole --> RichConsole[Rich Console]
+    Agent --&gt; CLIConsole[CLI Console&lt;br/&gt;trae_agent/utils/cli/]
+    CLIConsole --&gt; SimpleConsole[Simple Console]
+    CLIConsole --&gt; RichConsole[Rich Console]
     
     %% 轨迹记录层
-    Agent --> TrajectoryRecorder[Trajectory Recorder<br/>trae_agent/utils/trajectory_recorder.py]
+    Agent --&gt; TrajectoryRecorder[Trajectory Recorder&lt;br/&gt;trae_agent/utils/trajectory_recorder.py]
     
     %% 提示层
-    TraeAgent --> SystemPrompt[System Prompt<br/>trae_agent/prompt/agent_prompt.py]
+    TraeAgent --&gt; SystemPrompt[System Prompt&lt;br/&gt;trae_agent/prompt/agent_prompt.py]
     
     %% 评估层
-    Evaluation[Evaluation<br/>evaluation/] --> Agent
-    Evaluation --> SWEBench[SWE-bench]
-    Evaluation --> SWEBenchLive[SWE-bench-Live]
-    Evaluation --> MultiSWEBench[Multi-SWE-bench]
+    Evaluation[Evaluation&lt;br/&gt;evaluation/] --&gt; Agent
+    Evaluation --&gt; SWEBench[SWE-bench]
+    Evaluation --&gt; SWEBenchLive[SWE-bench-Live]
+    Evaluation --&gt; MultiSWEBench[Multi-SWE-bench]
     
     %% 测试层
-    Tests[Tests<br/>tests/] -.-> Agent
-    Tests -.-> ToolRegistry
-    Tests -.-> Config
+    Tests[Tests&lt;br/&gt;tests/] -.-&gt; Agent
+    Tests -.-&gt; ToolRegistry
+    Tests -.-&gt; Config
     
     %% 样式定义
     classDef interface fill:#e1f5fe,stroke:#01579b,stroke-width:2px
@@ -488,12 +516,10 @@ graph TB
     class LLMClient,Anthropic,OpenAI,Google,Ollama,Azure,Doubao,OpenRouter llm
     class Config,CLIConsole,TrajectoryRecorder,DockerManager,MCPClient,SystemPrompt utils
     class Evaluation,SWEBench,SWEBenchLive,MultiSWEBench,Tests eval
-</div>
-</p>
-<h2 id="核心流程">核心流程</h2>
-
-<div class="mermaid" align="center">
-sequenceDiagram
+  </pre>
+  <h2 id="核心流程">核心流程</h2>
+<pre class="mermaid">
+    sequenceDiagram
     participant CLI
     participant Agent
     participant TraeAgent
@@ -503,77 +529,76 @@ sequenceDiagram
     participant TrajectoryRecorder
 
     Note over CLI,TrajectoryRecorder: 1. 初始化阶段
-    CLI->>Agent: create(agent_type, config, console)
-    Agent->>TraeAgent: new TraeAgent(config)
-    Agent->>CLIConsole: set_cli_console()
-    Agent->>TrajectoryRecorder: set_trajectory_recorder()
+    CLI-&gt;&gt;Agent: create(agent_type, config, console)
+    Agent-&gt;&gt;TraeAgent: new TraeAgent(config)
+    Agent-&gt;&gt;CLIConsole: set_cli_console()
+    Agent-&gt;&gt;TrajectoryRecorder: set_trajectory_recorder()
 
     Note over CLI,TrajectoryRecorder: 2. 任务启动
-    CLI->>Agent: run(task, task_args)
-    Agent->>TraeAgent: new_task(task, extra_args)
-    TraeAgent->>TraeAgent: setup initial messages
-    TraeAgent->>TrajectoryRecorder: start_recording()
+    CLI-&gt;&gt;Agent: run(task, task_args)
+    Agent-&gt;&gt;TraeAgent: new_task(task, extra_args)
+    TraeAgent-&gt;&gt;TraeAgent: setup initial messages
+    TraeAgent-&gt;&gt;TrajectoryRecorder: start_recording()
 
     alt MCP 工具需要初始化
-        Agent->>TraeAgent: initialise_mcp()
-        TraeAgent->>TraeAgent: discover_mcp_tools()
+        Agent-&gt;&gt;TraeAgent: initialise_mcp()
+        TraeAgent-&gt;&gt;TraeAgent: discover_mcp_tools()
     end
 
-    Agent->>CLIConsole: print_task_details()
+    Agent-&gt;&gt;CLIConsole: print_task_details()
     
     par 并行启动
-        Agent->>CLIConsole: start() [异步任务]
+        Agent-&gt;&gt;CLIConsole: start() [异步任务]
     and
-        Agent->>TraeAgent: execute_task()
+        Agent-&gt;&gt;TraeAgent: execute_task()
     end
 
     Note over CLI,TrajectoryRecorder: 3. 主执行循环
     loop 最多 max_steps 次
-        TraeAgent->>CLIConsole: update_status(THINKING)
-        TraeAgent->>LLMClient: chat(messages, tools)
-        LLMClient-->>TraeAgent: llm_response
-        TraeAgent->>CLIConsole: update_status(response)
+        TraeAgent-&gt;&gt;CLIConsole: update_status(THINKING)
+        TraeAgent-&gt;&gt;LLMClient: chat(messages, tools)
+        LLMClient--&gt;&gt;TraeAgent: llm_response
+        TraeAgent-&gt;&gt;CLIConsole: update_status(response)
 
         alt LLM 说任务完成
-            TraeAgent->>TraeAgent: llm_indicates_task_completed()
+            TraeAgent-&gt;&gt;TraeAgent: llm_indicates_task_completed()
             alt 真正完成
-                TraeAgent->>TraeAgent: _is_task_completed()
-                TraeAgent->>TraeAgent: set COMPLETED state
+                TraeAgent-&gt;&gt;TraeAgent: _is_task_completed()
+                TraeAgent-&gt;&gt;TraeAgent: set COMPLETED state
                 Note over TraeAgent: 跳出循环
             else 实际未完成
-                TraeAgent->>TraeAgent: task_incomplete_message()
+                TraeAgent-&gt;&gt;TraeAgent: task_incomplete_message()
                 Note over TraeAgent: 继续循环
             end
         else LLM 要执行工具
-            TraeAgent->>CLIConsole: update_status(CALLING_TOOL)
+            TraeAgent-&gt;&gt;CLIConsole: update_status(CALLING_TOOL)
             alt 并行工具调用
-                TraeAgent->>ToolExecutor: parallel_tool_call()
+                TraeAgent-&gt;&gt;ToolExecutor: parallel_tool_call()
             else 串行工具调用
-                TraeAgent->>ToolExecutor: sequential_tool_call()
+                TraeAgent-&gt;&gt;ToolExecutor: sequential_tool_call()
             end
-            ToolExecutor-->>TraeAgent: tool_results
-            TraeAgent->>CLIConsole: update_status(tool_results)
+            ToolExecutor--&gt;&gt;TraeAgent: tool_results
+            TraeAgent-&gt;&gt;CLIConsole: update_status(tool_results)
             
             opt 需要反思
-                TraeAgent->>TraeAgent: reflect_on_result()
-                TraeAgent->>CLIConsole: update_status(REFLECTING)
+                TraeAgent-&gt;&gt;TraeAgent: reflect_on_result()
+                TraeAgent-&gt;&gt;CLIConsole: update_status(REFLECTING)
             end
         end
 
-        TraeAgent->>TrajectoryRecorder: record_agent_step()
-        TraeAgent->>CLIConsole: update_status(COMPLETED step)
+        TraeAgent-&gt;&gt;TrajectoryRecorder: record_agent_step()
+        TraeAgent-&gt;&gt;CLIConsole: update_status(COMPLETED step)
     end
 
     Note over CLI,TrajectoryRecorder: 4. 清理阶段
-    TraeAgent->>ToolExecutor: close_tools()
-    TraeAgent->>TraeAgent: cleanup_mcp_clients()
-    TraeAgent-->>Agent: execution_result
-    Agent->>CLIConsole: 等待控制台任务完成
-    Agent-->>CLI: 返回执行结果
-    CLI->>CLI: 显示轨迹文件路径
-</div>
-
-<p>Trae Agent 整体设计上采用了 ReAct 模式，当创建 Agent 实例并初始化资源后，开始在循环中执行任务，交替执行 LLM 推理、工具执行，失败反思步骤，直到任务完成。
+    TraeAgent-&gt;&gt;ToolExecutor: close_tools()
+    TraeAgent-&gt;&gt;TraeAgent: cleanup_mcp_clients()
+    TraeAgent--&gt;&gt;Agent: execution_result
+    Agent-&gt;&gt;CLIConsole: 等待控制台任务完成
+    Agent--&gt;&gt;CLI: 返回执行结果
+    CLI-&gt;&gt;CLI: 显示轨迹文件路径
+  </pre>
+  <p>Trae Agent 整体设计上采用了 ReAct 模式，当创建 Agent 实例并初始化资源后，开始在循环中执行任务，交替执行 LLM 推理、工具执行，失败反思步骤，直到任务完成。
 任务的完成分为两步，一是解析 LLM 的 Response 中是否有任务结束标识（ 是否包含 <code>task_done</code> 等关键字），二是当必须有代码变更时，检查是否有除了 test 文件之外的的改动（TODO：什么情况下才必须要有代码变更？）。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@override</span>  
 </span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_is_task_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_response</span><span class="p">:</span> <span class="n">LLMResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>  
@@ -606,12 +631,12 @@ sequenceDiagram
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filtered_lines</span><span class="p">)</span>
 </span></span></code></pre></div><p>当执行步骤（轮次）超过 max_steps 限制时，会抛出 <code>Task execution exceeded maximum steps without completion.</code> 错误中止任务。</p>
 <h3 id="状态转换">状态转换</h3>
-<p>Agent 状态枚举</p>
+<p>Trae Agent 核心包括两个状态</p>
 <ul>
-<li>THINKING： 初始状态，同时标识 LLM 调用中状态</li>
-<li>CALLING_TOOL： 代表执行工具中</li>
-<li>REFLECTING：反思状态，当工具执行异常时进入该状态</li>
+<li>AgentState：单次任务生命周期内的状态</li>
+<li>AgentStepState：每轮执行步骤内的状态</li>
 </ul>
+<p>一个 AgentState 内会有多个（轮）AgentStepState。每一轮步骤执行完成之后，都会创建一个新的 AgentStepState ，AgentStepState 的状态不会回退或者说状态机没有环。这种状态拆分的设计非常符合Agent 需要在循环内执行的情况。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AgentState</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>  
 </span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Defines possible states during an agent&#39;s execution lifecycle.&#34;&#34;&#34;</span>  
 </span></span><span class="line"><span class="cl">  
@@ -628,50 +653,102 @@ sequenceDiagram
 </span></span><span class="line"><span class="cl">    <span class="n">REFLECTING</span> <span class="o">=</span> <span class="s2">&#34;reflecting&#34;</span>  
 </span></span><span class="line"><span class="cl">    <span class="n">COMPLETED</span> <span class="o">=</span> <span class="s2">&#34;completed&#34;</span>  
 </span></span><span class="line"><span class="cl">    <span class="n">ERROR</span> <span class="o">=</span> <span class="s2">&#34;error&#34;</span>  
-</span></span></code></pre></div><p>AgentState 标识单次任务生命周期内的状态， AgentStepState 标识每轮执行步骤内的状态。一个 AgentState 内会有多个（轮）AgentStepState。每一轮步骤执行完成之后，都会创建一个新的 AgentStepState ，AgentStepState 的状态不会回退或者说状态机没有环。这种状态拆分的设计非常符合Agent 需要在循环内执行的情况。</p>
-<p>AgentState 状态扭转</p>
-
-<div class="mermaid" align="center">
-stateDiagram-v2
-    [*] --> IDLE
-    IDLE --> RUNNING: 开始执行任务
-    RUNNING --> COMPLETED: 任务成功完成
-    RUNNING --> ERROR: 执行发生错误
-    COMPLETED --> [*]
-    ERROR --> [*]
+</span></span></code></pre></div><p>AgentState 状态扭转</p>
+<pre class="mermaid">
+    stateDiagram-v2
+    [*] --&gt; IDLE
+    IDLE --&gt; RUNNING: 开始执行任务
+    RUNNING --&gt; COMPLETED: 任务成功完成
+    RUNNING --&gt; ERROR: 执行发生错误
+    COMPLETED --&gt; [*]
+    ERROR --&gt; [*]
     
     note right of RUNNING: 在此状态下执行多个步骤
-</div>
-
-<p>AgentStepState 状态扭转
-
-<div class="mermaid" align="center">
-stateDiagram-v2
-    [*] --> THINKING
-    THINKING --> CALLING_TOOL: LLM决定调用工具
-    THINKING --> COMPLETED: LLM决定任务完成
-    CALLING_TOOL --> REFLECTING: 工具执行有问题需要反思
-    CALLING_TOOL --> COMPLETED: 工具执行成功
-    REFLECTING --> COMPLETED: 反思完成
-    THINKING --> ERROR: 推理过程出错
-    CALLING_TOOL --> ERROR: 工具调用出错
-    REFLECTING --> ERROR: 反思过程出错
-    COMPLETED --> [*]
-    ERROR --> [*]
-</div>
-</p>
-<h2 id="工具">工具</h2>
-<h3 id="ckg-代码知识图谱">CKG 代码知识图谱</h3>
-<p>代码知识图谱工具，用于构建和查询代码库的结构化信息。它提供三个核心功能：</p>
+  </pre>
+  <p>AgentStepState 状态扭转</p>
+<pre class="mermaid">
+    stateDiagram-v2
+    [*] --&gt; THINKING
+    THINKING --&gt; CALLING_TOOL: LLM决定调用工具
+    THINKING --&gt; COMPLETED: LLM决定任务完成
+    CALLING_TOOL --&gt; REFLECTING: 工具执行有问题需要反思
+    CALLING_TOOL --&gt; COMPLETED: 工具执行成功
+    REFLECTING --&gt; COMPLETED: 反思完成
+    THINKING --&gt; ERROR: 推理过程出错
+    CALLING_TOOL --&gt; ERROR: 工具调用出错
+    REFLECTING --&gt; ERROR: 反思过程出错
+    COMPLETED --&gt; [*]
+    ERROR --&gt; [*]
+  </pre>
+  <h2 id="工具">工具</h2>
+<p>Trae Agent 内置了下面工具</p>
+<ul>
+<li>CKG：代码知识图谱</li>
+<li>Bash</li>
+<li>Docker tool Execute</li>
+<li>Edit</li>
+<li>Json Edit：专门为 json 文件编辑设计</li>
+<li>MCP</li>
+<li>Sequential Thinking Tool：思考工具</li>
+<li>Task Done： 虚拟工具，用于标记任务结束</li>
+</ul>
+<p>工具基类以及工具参数设计：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Tool</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Base class for all tools.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@abstractmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Get the tool name.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@abstractmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_description</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Get the tool description.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@abstractmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ToolParameter</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Get the tool parameters.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@abstractmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">async</span> <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arguments</span><span class="p">:</span> <span class="n">ToolCallArguments</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolExecResult</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Execute the tool with given parameters.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl">	
+</span></span><span class="line"><span class="cl"><span class="nd">@dataclass</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ToolParameter</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tool parameter definition.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enum</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">items</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span></code></pre></div><p>每个工具的实现需要实现下面方法</p>
+<ul>
+<li>get_name：工具标识，用于获取工具实例</li>
+<li>get_description：工具描述，用于LLM 调用中的 Function Call</li>
+<li>get_parameters：工具参数集合</li>
+<li>execute：工具执行逻辑</li>
+</ul>
+<h3 id="ckg-tool">CKG Tool</h3>
+<p>CKG 为代码知识图谱工具，用于构建和查询代码库的结构化信息。它提供三个核心功能：</p>
 <ul>
 <li>search_function: 搜索函数定义</li>
 <li>search_class: 搜索类定义</li>
-<li>search_class_method: 搜索类方法
-用于解决下面这几类问题</li>
+<li>search_class_method: 搜索类方法</li>
+</ul>
+<p>用于解决下面这几类问题</p>
+<ul>
 <li>代码理解: 快速定位函数和类的定义</li>
 <li>代码导航: 找到具体的实现位置和行号</li>
 <li>上下文分析: 了解函数/类的完整代码和结构信息</li>
 </ul>
+<h4 id="ckg-schema">CKG Schema</h4>
 <p>Agent 会为每一个代码仓库快照构建一个database， 储存于本地的 sqlite，表结构如下</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 函数表
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">functions</span><span class="w"> </span><span class="p">(</span><span class="w">
@@ -704,9 +781,8 @@ stateDiagram-v2
 <li>Git 仓库：基于 commit + 未提交变更</li>
 <li>非 Git：基于文件元数据（文件名+修改时间+文件大小）</li>
 </ul>
-
-<div class="mermaid" align="center">
-sequenceDiagram
+<pre class="mermaid">
+    sequenceDiagram
     participant Client as 客户端
     participant CKG as CKGDatabase
     participant FS as 文件系统
@@ -715,85 +791,84 @@ sequenceDiagram
 
     Note over Client,DB: CKG 数据库初始化流程
 
-    Client->>CKG: __init__(codebase_path)
+    Client-&gt;&gt;CKG: __init__(codebase_path)
     
     Note over CKG: 1. 初始化阶段
-    CKG->>CKG: 设置 _codebase_path
-    CKG->>FS: 检查 CKG_DATABASE_PATH 目录
+    CKG-&gt;&gt;CKG: 设置 _codebase_path
+    CKG-&gt;&gt;FS: 检查 CKG_DATABASE_PATH 目录
     alt 目录不存在
-        CKG->>FS: mkdir(parents=True, exist_ok=True)
+        CKG-&gt;&gt;FS: mkdir(parents=True, exist_ok=True)
     end
 
     Note over CKG: 2. 读取存储信息
-    CKG->>FS: 检查 CKG_STORAGE_INFO_FILE 是否存在
+    CKG-&gt;&gt;FS: 检查 CKG_STORAGE_INFO_FILE 是否存在
     alt 存储信息文件存在
-        CKG->>FS: 读取 storage_info.json
-        FS-->>CKG: 返回 ckg_storage_info 字典
+        CKG-&gt;&gt;FS: 读取 storage_info.json
+        FS--&gt;&gt;CKG: 返回 ckg_storage_info 字典
         alt 当前路径在存储信息中
-            CKG->>CKG: existing_hash = ckg_storage_info[path]
+            CKG-&gt;&gt;CKG: existing_hash = ckg_storage_info[path]
         else 路径不存在
-            CKG->>CKG: existing_hash = ""
+            CKG-&gt;&gt;CKG: existing_hash = &#34;&#34;
         end
     else 存储信息文件不存在
-        CKG->>CKG: existing_hash = ""
+        CKG-&gt;&gt;CKG: existing_hash = &#34;&#34;
     end
 
     Note over CKG: 3. 计算当前快照哈希
-    CKG->>Git: get_folder_snapshot_hash(codebase_path)
+    CKG-&gt;&gt;Git: get_folder_snapshot_hash(codebase_path)
     alt 是 Git 仓库
-        Git->>Git: 获取 commit hash + 未提交变更
-        Git-->>CKG: current_hash (git-clean-xxx 或 git-dirty-xxx)
+        Git-&gt;&gt;Git: 获取 commit hash + 未提交变更
+        Git--&gt;&gt;CKG: current_hash (git-clean-xxx 或 git-dirty-xxx)
     else 非 Git 仓库
-        Git->>FS: 计算文件元数据哈希
-        FS-->>CKG: current_hash (metadata-xxx)
+        Git-&gt;&gt;FS: 计算文件元数据哈希
+        FS--&gt;&gt;CKG: current_hash (metadata-xxx)
     end
 
     Note over CKG: 4. 比较哈希值并决策
     alt existing_hash == current_hash
         Note over CKG: 可以复用现有数据库
-        CKG->>CKG: database_path = get_ckg_database_path(existing_hash)
+        CKG-&gt;&gt;CKG: database_path = get_ckg_database_path(existing_hash)
     else 哈希值不同或为空
         Note over CKG: 需要重建数据库
-        CKG->>CKG: old_db_path = get_ckg_database_path(existing_hash)
+        CKG-&gt;&gt;CKG: old_db_path = get_ckg_database_path(existing_hash)
         alt 旧数据库存在
-            CKG->>FS: 删除旧数据库文件
+            CKG-&gt;&gt;FS: 删除旧数据库文件
         end
-        CKG->>CKG: database_path = get_ckg_database_path(current_hash)
-        CKG->>CKG: 更新 ckg_storage_info[path] = current_hash
-        CKG->>FS: 保存更新后的 storage_info.json
+        CKG-&gt;&gt;CKG: database_path = get_ckg_database_path(current_hash)
+        CKG-&gt;&gt;CKG: 更新 ckg_storage_info[path] = current_hash
+        CKG-&gt;&gt;FS: 保存更新后的 storage_info.json
     end
 
     Note over CKG: 5. 连接/创建数据库
     alt 数据库文件存在
         Note over CKG: 复用现有数据库
-        CKG->>DB: sqlite3.connect(database_path)
-        DB-->>CKG: 数据库连接
+        CKG-&gt;&gt;DB: sqlite3.connect(database_path)
+        DB--&gt;&gt;CKG: 数据库连接
     else 数据库文件不存在
         Note over CKG: 创建新数据库
-        CKG->>DB: sqlite3.connect(database_path)
-        DB-->>CKG: 数据库连接
+        CKG-&gt;&gt;DB: sqlite3.connect(database_path)
+        DB--&gt;&gt;CKG: 数据库连接
         
         loop 创建表结构
-            CKG->>DB: execute(CREATE TABLE functions...)
-            CKG->>DB: execute(CREATE TABLE classes...)
+            CKG-&gt;&gt;DB: execute(CREATE TABLE functions...)
+            CKG-&gt;&gt;DB: execute(CREATE TABLE classes...)
         end
-        CKG->>DB: commit()
+        CKG-&gt;&gt;DB: commit()
         
         Note over CKG: 构建代码知识图谱
-        CKG->>CKG: _construct_ckg()
+        CKG-&gt;&gt;CKG: _construct_ckg()
         
         Note over CKG,FS: 遍历代码文件，解析AST，插入数据库
         loop 处理每个代码文件
-            CKG->>FS: 读取源文件
-            CKG->>CKG: tree-sitter 解析 AST
-            CKG->>DB: 插入函数/类信息
+            CKG-&gt;&gt;FS: 读取源文件
+            CKG-&gt;&gt;CKG: tree-sitter 解析 AST
+            CKG-&gt;&gt;DB: 插入函数/类信息
         end
     end
 
-    CKG-->>Client: 初始化完成，返回 CKGDatabase 实例
-</div>
-
-<p>目前支持部分语言构建代码知识图谱：</p>
+    CKG--&gt;&gt;Client: 初始化完成，返回 CKGDatabase 实例
+  </pre>
+  <p>目前支持部分语言构建代码知识图谱：</p>
 <ul>
 <li>python</li>
 <li>Java</li>
@@ -802,48 +877,48 @@ sequenceDiagram
 <li>Typescript</li>
 <li>Javascript</li>
 </ul>
-<h3 id="bash">Bash</h3>
+<h3 id="bash--tool">Bash  Tool</h3>
 <p>Trae Agent 提供了 bash 工具，支持在 Unix 和 Windows 下工作。通过 bash shell 工具，可以支持执行各种复杂命令以及持久化会话状态。</p>
-
-<div class="mermaid" align="center">
-sequenceDiagram
+<pre class="mermaid">
+    sequenceDiagram
     participant A as Agent
     participant BT as BashTool  
     participant BS as BashSession
     participant P as Process
     
-    A->>BT: execute(command)
-    BT->>BT: 检查session
+    A-&gt;&gt;BT: execute(command)
+    BT-&gt;&gt;BT: 检查session
     
     alt session不存在
-        BT->>BS: 创建新session
-        BS->>P: 启动bash进程
-        P-->>BS: 进程创建成功
+        BT-&gt;&gt;BS: 创建新session
+        BS-&gt;&gt;P: 启动bash进程
+        P--&gt;&gt;BS: 进程创建成功
     end
     
-    BT->>BS: run(command)
-    BS->>BS: 构造sentinel
-    BS->>P: 发送包装后的命令
+    BT-&gt;&gt;BS: run(command)
+    BS-&gt;&gt;BS: 构造sentinel
+    BS-&gt;&gt;P: 发送包装后的命令
     
     loop 轮询输出
-        BS->>P: 读取stdout缓冲区
-        P-->>BS: 返回当前输出
+        BS-&gt;&gt;P: 读取stdout缓冲区
+        P--&gt;&gt;BS: 返回当前输出
         
         alt 找到sentinel
-            BS->>BS: 解析输出和错误码
+            BS-&gt;&gt;BS: 解析输出和错误码
         else 超时
-            BS->>BS: 设置超时状态
+            BS-&gt;&gt;BS: 设置超时状态
         end
     end
     
-    BS->>P: 读取stderr
-    P-->>BS: 返回错误信息
+    BS-&gt;&gt;P: 读取stderr
+    P--&gt;&gt;BS: 返回错误信息
     
-    BS-->>BT: 返回结果
-    BT-->>A: 返回ToolExecResult
-</div>
-
-<p>Sentinel机制</p>
+    BS--&gt;&gt;BT: 返回结果
+    BT--&gt;&gt;A: 返回ToolExecResult
+  </pre>
+  <h4 id="sentinel机制">Sentinel机制</h4>
+<p>因为 bash shell 是一直存在于 task 声明周期内的，并不是一次执行，所以需要一个标记机制用于获取命令的输出。
+通过在执行命令后面附加 <code>echo sentinel</code> ，可以通过sentinel 标识区分获取任务的结束输出以及错误码。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">_sentinel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;,,,,bash-command-exit-__ERROR_CODE__-banner,,,,&#34;</span> <span class="c1"># `__ERROR_CODE__` will be replaced by `$?` or `!errorlevel!` later</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="n">sentinel_before</span><span class="p">,</span> <span class="n">pivot</span><span class="p">,</span> <span class="n">sentinel_after</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sentinel</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&#34;__ERROR_CODE__&#34;</span><span class="p">)</span>  
@@ -884,7 +959,171 @@ sequenceDiagram
 </span></span><span class="line"><span class="cl">    <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>  
 </span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;timed out: bash has not returned in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="si">}</span><span class="s2"> seconds and must be restarted&#34;</span><span class="p">,</span>  
 </span></span><span class="line"><span class="cl">    <span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
-</span></span></code></pre></div><p>通过在执行命令后面附加 <code>echo sentinel</code> ，可以通过sentinel 标识区分获取任务的结束输出以及错误码。</p>
+</span></span></code></pre></div><h3 id="edit-tool">Edit Tool</h3>
+<p>Edit Tool 其实文件交互工具，不仅仅包含编辑文件的功能，还提供了查看文件的功能，提供下面模式命令</p>
+<ul>
+<li>view：查看文件内容，支持指定范围</li>
+<li>create：创建文件并写入</li>
+<li>str_replace：替换文件中的指定内容
+<ul>
+<li>注意：当替换内容在文件出现多次时会报错提示 LLM</li>
+</ul>
+</li>
+<li>insert：在文件指定行处插入内容</li>
+</ul>
+<p>该工具的实现并不复杂，这里不展开讲解具体逻辑。</p>
+<h4 id="文件路径校验">文件路径校验</h4>
+<p>路径参数只支持绝对路径，报错还会给出可能的路径。基本上所有的 coding agent 的实现都推荐使用决定路径作为工具参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">validate_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Validate the path for the str_replace_editor tool.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">suggested_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&#34;/&#34;</span><span class="p">)</span> <span class="o">/</span> <span class="n">path</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is not an absolute path, it should start with `/`. Maybe you meant </span><span class="si">{</span><span class="n">suggested_path</span><span class="si">}</span><span class="s2">?&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Check if path exists</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> does not exist. Please provide a valid path.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;File already exists at: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Cannot overwrite files using command `create`.&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Check if the path points to a directory</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;view&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is a directory and only the `view` command can be used on directories&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span></code></pre></div><h4 id="结果输出">结果输出</h4>
+<p>在工具完成任务后会输出相对友好的改动范围，作为工具输出反馈给LLM ，还可以用于 UI 展示</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">str_replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">old_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolExecResult</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">	    <span class="o">...</span> <span class="c1"># 文件内容替换</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Create a snippet of the edited section</span>
+</span></span><span class="line"><span class="cl">        <span class="n">replacement_line</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">old_str</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_line</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">replacement_line</span> <span class="o">-</span> <span class="n">SNIPPET_LINES</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_line</span> <span class="o">=</span> <span class="n">replacement_line</span> <span class="o">+</span> <span class="n">SNIPPET_LINES</span> <span class="o">+</span> <span class="n">new_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">snippet</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)[</span><span class="n">start_line</span> <span class="p">:</span> <span class="n">end_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Prepare the success message</span>
+</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;The file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has been edited. &#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_output</span><span class="p">(</span><span class="n">snippet</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&#34;a snippet of </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">start_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">+=</span> <span class="s2">&#34;Review the changes and make sure they are as expected. Edit the file again if necessary.&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ToolExecResult</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">output</span><span class="o">=</span><span class="n">success_msg</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_make_output</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">file_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">file_descriptor</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">init_line</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">expand_tabs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Generate output for the CLI based on the content of a file.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">file_content</span> <span class="o">=</span> <span class="n">maybe_truncate</span><span class="p">(</span><span class="n">file_content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">expand_tabs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">file_content</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">expandtabs</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">file_content</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="n">init_line</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">))]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;Here&#39;s the result of running `cat -n` on </span><span class="si">{</span><span class="n">file_descriptor</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="n">file_content</span> <span class="o">+</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span></code></pre></div><h3 id="sequential-thinking-tool">Sequential Thinking Tool</h3>
+<p>顺序思考工具 ，在 trae-agent 中用于帮助 AI 进行结构化思考和问题分解的工具。</p>
+<h4 id="prompt">Prompt</h4>
+<p>工具的描述即是 Prompt 的 一部分，引导 LLM 进行反思推理。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">A detailed tool <span class="k">for</span> dynamic and reflective problem-solving through thoughts.
+</span></span><span class="line"><span class="cl">This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+</span></span><span class="line"><span class="cl">Each thought can build on, question, or revise previous insights as understanding deepens.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">When to use this tool:
+</span></span><span class="line"><span class="cl">- Breaking down complex problems into steps
+</span></span><span class="line"><span class="cl">- Planning and design with room <span class="k">for</span> revision
+</span></span><span class="line"><span class="cl">- Analysis that might need course correction
+</span></span><span class="line"><span class="cl">- Problems where the full scope might not be clear initially
+</span></span><span class="line"><span class="cl">- Problems that require a multi-step solution
+</span></span><span class="line"><span class="cl">- Tasks that need to maintain context over multiple steps
+</span></span><span class="line"><span class="cl">- Situations where irrelevant information needs to be filtered out
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Key features:
+</span></span><span class="line"><span class="cl">- You can adjust total_thoughts up or down as you progress
+</span></span><span class="line"><span class="cl">- You can question or revise previous thoughts
+</span></span><span class="line"><span class="cl">- You can add more thoughts even after reaching what seemed like the end
+</span></span><span class="line"><span class="cl">- You can express uncertainty and explore alternative approaches
+</span></span><span class="line"><span class="cl">- Not every thought needs to build linearly - you can branch or backtrack
+</span></span><span class="line"><span class="cl">- Generates a solution hypothesis
+</span></span><span class="line"><span class="cl">- Verifies the hypothesis based on the Chain of Thought steps
+</span></span><span class="line"><span class="cl">- Repeats the process <span class="k">until</span> satisfied
+</span></span><span class="line"><span class="cl">- Provides a correct answer
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Parameters explained:
+</span></span><span class="line"><span class="cl">- thought: Your current thinking step, which can include:
+</span></span><span class="line"><span class="cl">* Regular analytical steps
+</span></span><span class="line"><span class="cl">* Revisions of previous thoughts
+</span></span><span class="line"><span class="cl">* Questions about previous decisions
+</span></span><span class="line"><span class="cl">* Realizations about needing more analysis
+</span></span><span class="line"><span class="cl">* Changes in approach
+</span></span><span class="line"><span class="cl">* Hypothesis generation
+</span></span><span class="line"><span class="cl">* Hypothesis verification
+</span></span><span class="line"><span class="cl">- next_thought_needed: True <span class="k">if</span> you need more thinking, even <span class="k">if</span> at what seemed like the end
+</span></span><span class="line"><span class="cl">- thought_number: Current number in sequence <span class="o">(</span>can go beyond initial total <span class="k">if</span> needed<span class="o">)</span>
+</span></span><span class="line"><span class="cl">- total_thoughts: Current estimate of thoughts needed <span class="o">(</span>can be adjusted up/down<span class="o">)</span>
+</span></span><span class="line"><span class="cl">- is_revision: A boolean indicating <span class="k">if</span> this thought revises previous thinking
+</span></span><span class="line"><span class="cl">- revises_thought: If is_revision is true, which thought number is being reconsidered
+</span></span><span class="line"><span class="cl">- branch_from_thought: If branching, which thought number is the branching point
+</span></span><span class="line"><span class="cl">- branch_id: Identifier <span class="k">for</span> the current branch <span class="o">(</span><span class="k">if</span> any<span class="o">)</span>
+</span></span><span class="line"><span class="cl">- needs_more_thoughts: If reaching end but realizing more thoughts needed
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">You should:
+</span></span><span class="line"><span class="cl">1. Start with an initial estimate of needed thoughts, but be ready to adjust
+</span></span><span class="line"><span class="cl">2. Feel free to question or revise previous thoughts
+</span></span><span class="line"><span class="cl">3. Don<span class="err">&#39;</span>t hesitate to add more thoughts <span class="k">if</span> needed, even at the <span class="s2">&#34;end&#34;</span>
+</span></span><span class="line"><span class="cl">4. Express uncertainty when present
+</span></span><span class="line"><span class="cl">5. Mark thoughts that revise previous thinking or branch into new paths
+</span></span><span class="line"><span class="cl">6. Ignore information that is irrelevant to the current step
+</span></span><span class="line"><span class="cl">7. Generate a solution hypothesis when appropriate
+</span></span><span class="line"><span class="cl">8. Verify the hypothesis based on the Chain of Thought steps
+</span></span><span class="line"><span class="cl">9. Repeat the process <span class="k">until</span> satisfied with the solution
+</span></span><span class="line"><span class="cl">10. Provide a single, ideally correct answer as the final output
+</span></span><span class="line"><span class="cl">11. Only <span class="nb">set</span> next_thought_needed to <span class="nb">false</span> when truly <span class="k">done</span> and a satisfactory answer is reached
+</span></span></code></pre></div><h4 id="结构化思考">结构化思考</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@dataclass</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ThoughtData</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">thought</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">    <span class="n">thought_number</span><span class="p">:</span> <span class="nb">int</span>
+</span></span><span class="line"><span class="cl">    <span class="n">total_thoughts</span><span class="p">:</span> <span class="nb">int</span>
+</span></span><span class="line"><span class="cl">    <span class="n">next_thought_needed</span><span class="p">:</span> <span class="nb">bool</span>
+</span></span><span class="line"><span class="cl">    <span class="n">is_revision</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">revises_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">branch_from_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">branch_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="n">needs_more_thoughts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span></code></pre></div><p>参数解释（其实就是对应上面 Prompt 部分的翻译）:</p>
+<ul>
+<li>thought: 您当前思考步骤，可以包括：
+<ul>
+<li>常规分析步骤</li>
+<li>对先前想法的修订</li>
+<li>对先前决策的疑问</li>
+<li>关于需要更多分析的领悟</li>
+<li>方法的变化</li>
+<li>假设的生成</li>
+<li>假设的验证</li>
+</ul>
+</li>
+<li>next_thought_needed: 需要更多思考时为True，即使看似已经结束</li>
+<li>thought_number: 当前序列中的编号（如有需要，可以超过初始总数）</li>
+<li>total_thoughts: 当前所需思考的估计（可上下调整）</li>
+<li>is_revision: 一个布尔值，表示此想法是否修订了先前的思考</li>
+<li>revises_thought: 如果is_revision为true，则正在重新考虑的想法编号</li>
+<li>branch_from_thought: 如果分支，则分支点的想法编号</li>
+<li>branch_id: 当前分支的标识符（如果有）</li>
+<li>needs_more_thoughts: 如果到达终点但意识到需要更多思考</li>
+</ul>
+<p><strong>这个思考工具通过结构化的设计（强校验）以及引入序列版本号、分支、修订机制让 LLM 的推理更加强大，可以追溯之前的思路一步步演进和返工重来。</strong></p>
+<h2 id="评估">评估</h2>
 </div><div class="flex items-center justify-center" style="min-height:120px;">
     <p>-- End --</p>
   </div>

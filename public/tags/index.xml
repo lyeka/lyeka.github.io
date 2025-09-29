@@ -24,5 +24,12 @@
       <guid>http://localhost:1313/tags/ai/</guid>
       <description></description>
     </item>
+    <item>
+      <title>Deep Research</title>
+      <link>http://localhost:1313/tags/deep-research/</link>
+      <pubDate>Fri, 26 Sep 2025 18:33:15 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
+      <guid>http://localhost:1313/tags/deep-research/</guid>
+      <description></description>
+    </item>
   </channel>
 </rss>
