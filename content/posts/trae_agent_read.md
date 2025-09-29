@@ -3,7 +3,6 @@ date = '2025-09-26T17:18:14+08:00'
 title = 'Trae Agent 源码阅读'
 +++
 
-
 ## 项目概览
 
 {{< quote info >}}
@@ -251,7 +250,7 @@ sequenceDiagram
 ```
 
 Trae Agent 整体设计上采用了 ReAct 模式，当创建 Agent 实例并初始化资源后，开始在循环中执行任务，交替执行 LLM 推理、工具执行，失败反思步骤，直到任务完成。
-任务的完成分为两步，一是解析 LLM 的 Response 中是否有任务结束标识（ 是否包含 `task_done` 等关键字），二是当必须有代码变更时，检查是否有除了 test 文件之外的的改动（TODO：什么情况下才必须要有代码变更？）。
+任务的完成分为两步，一是解析 LLM 的 Response 中是否有任务结束标识（ 是否包含 `task_done` 等关键字），二是当必须有代码变更时，检查是否有除了 test 文件之外的的改动（目前看起来只有 SWE Bench 评估才有这个 `_is_task_completed` 流程）。
 
 ```python
 @override  
@@ -659,28 +658,28 @@ Edit Tool 其实文件交互工具，不仅仅包含编辑文件的功能，还�
 
 #### 文件路径校验
 
-路径参数只支持绝对路径，报错还会给出可能的路径。基本上所有的 coding agent 的实现都推荐使用决定路径作为工具参数。
+路径参数只支持绝对路径，报错还会给出可能的路径。基本上所有的 coding agent 的实现都推荐使用绝对路径作为工具参数。
 
 ```python
 def validate_path(self, command: str, path: Path):
-        """Validate the path for the str_replace_editor tool."""
-        if not path.is_absolute():
-            suggested_path = Path("/") / path
-            raise ToolError(
-                f"The path {path} is not an absolute path, it should start with `/`. Maybe you meant {suggested_path}?"
-            )
-        # Check if path exists
-        if not path.exists() and command != "create":
-            raise ToolError(f"The path {path} does not exist. Please provide a valid path.")
-        if path.exists() and command == "create":
-            raise ToolError(
-                f"File already exists at: {path}. Cannot overwrite files using command `create`."
-            )
-        # Check if the path points to a directory
-        if path.is_dir() and command != "view":
-            raise ToolError(
-                f"The path {path} is a directory and only the `view` command can be used on directories"
-            )
+	"""Validate the path for the str_replace_editor tool."""
+	if not path.is_absolute():
+		suggested_path = Path("/") / path
+		raise ToolError(
+			f"The path {path} is not an absolute path, it should start with `/`. Maybe you meant {suggested_path}?"
+		)
+	# Check if path exists
+	if not path.exists() and command != "create":
+		raise ToolError(f"The path {path} does not exist. Please provide a valid path.")
+	if path.exists() and command == "create":
+		raise ToolError(
+			f"File already exists at: {path}. Cannot overwrite files using command `create`."
+		)
+	# Check if the path points to a directory
+	if path.is_dir() and command != "view":
+		raise ToolError(
+			f"The path {path} is a directory and only the `view` command can be used on directories"
+		)
 ```
 
 #### 结果输出
@@ -688,40 +687,40 @@ def validate_path(self, command: str, path: Path):
 
 ```python
 def str_replace(self, path: Path, old_str: str, new_str: str | None) -> ToolExecResult:
-	    ... # 文件内容替换
+	... # 文件内容替换
 
-        # Create a snippet of the edited section
-        replacement_line = file_content.split(old_str)[0].count("\n")
-        start_line = max(0, replacement_line - SNIPPET_LINES)
-        end_line = replacement_line + SNIPPET_LINES + new_str.count("\n")
-        snippet = "\n".join(new_file_content.split("\n")[start_line : end_line + 1])
+	# Create a snippet of the edited section
+	replacement_line = file_content.split(old_str)[0].count("\n")
+	start_line = max(0, replacement_line - SNIPPET_LINES)
+	end_line = replacement_line + SNIPPET_LINES + new_str.count("\n")
+	snippet = "\n".join(new_file_content.split("\n")[start_line : end_line + 1])
 
-        # Prepare the success message
-        success_msg = f"The file {path} has been edited. "
-        success_msg += self._make_output(snippet, f"a snippet of {path}", start_line + 1)
-        success_msg += "Review the changes and make sure they are as expected. Edit the file again if necessary."
+	# Prepare the success message
+	success_msg = f"The file {path} has been edited. "
+	success_msg += self._make_output(snippet, f"a snippet of {path}", start_line + 1)
+	success_msg += "Review the changes and make sure they are as expected. Edit the file again if necessary."
 
-        return ToolExecResult(
-            output=success_msg,
-        )
+	return ToolExecResult(
+		output=success_msg,
+	)
 
 def _make_output(
-    self,
-    file_content: str,
-    file_descriptor: str,
-    init_line: int = 1,
-    expand_tabs: bool = True,
+	self,
+	file_content: str,
+	file_descriptor: str,
+	init_line: int = 1,
+	expand_tabs: bool = True,
 ):
-    """Generate output for the CLI based on the content of a file."""
-    file_content = maybe_truncate(file_content)
-    if expand_tabs:
-        file_content = file_content.expandtabs()
-    file_content = "\n".join(
-        [f"{i + init_line:6}\t{line}" for i, line in enumerate(file_content.split("\n"))]
-    )
-    return (
-        f"Here's the result of running `cat -n` on {file_descriptor}:\n" + file_content + "\n"
-    )
+	"""Generate output for the CLI based on the content of a file."""
+	file_content = maybe_truncate(file_content)
+	if expand_tabs:
+		file_content = file_content.expandtabs()
+	file_content = "\n".join(
+		[f"{i + init_line:6}\t{line}" for i, line in enumerate(file_content.split("\n"))]
+	)
+	return (
+		f"Here's the result of running `cat -n` on {file_descriptor}:\n" + file_content + "\n"
+	)
 ```
 
 
@@ -794,15 +793,15 @@ You should:
 ```python
 @dataclass
 class ThoughtData:
-    thought: str
-    thought_number: int
-    total_thoughts: int
-    next_thought_needed: bool
-    is_revision: bool | None = None
-    revises_thought: int | None = None
-    branch_from_thought: int | None = None
-    branch_id: str | None = None
-    needs_more_thoughts: bool | None = None
+	thought: str
+	thought_number: int
+	total_thoughts: int
+	next_thought_needed: bool
+	is_revision: bool | None = None
+	revises_thought: int | None = None
+	branch_from_thought: int | None = None
+	branch_id: str | None = None
+	needs_more_thoughts: bool | None = None
 ```
 
 参数解释（其实就是对应上面 Prompt 部分的翻译）:
@@ -829,6 +828,148 @@ class ThoughtData:
 
 ## 评估
 
+### SWE Bench
+Trae agent 里面使用了 [SWE-bench](https://www.swebench.com/), [SWE-bench-Live](https://swe-bench-live.github.io/), 和 [Multi-SWE-bench](https://multi-swe-bench.github.io/) 数据集来测试评估 agent 解决软件工程问题的能力
+
+SWE 测试评估流程 如下
+
+```mermaid
+graph TD
+    A[GitHub 真实问题] --> B[SWE-bench 数据集]
+    B --> C[Docker 环境 + 源代码]
+    C --> D[Trae Agent 分析问题]
+    D --> E[生成代码补丁]
+    E --> F[应用补丁到源代码]
+    F --> G[运行自动化测试]
+    G --> H{测试是否通过?}
+    H -->|通过| I[✅ 问题解决]
+    H -->|失败| J[❌ 补丁无效]
+    
+    I --> K[计算成功率指标]
+    J --> K
+    
+    style A fill:#e1f5fe
+    style E fill:#fff3e0
+    style G fill:#f3e5f5
+    style I fill:#e8f5e8
+    style J fill:#ffebee
+```
 
 
+
+除了该评估外，Trae agent 还实现了一个 patch selection
+
+### Patch Selection
+
+项目里提供了一个 Selector Agent， 该 Agent 在多个候选补丁（ 使用 Trae Agent 生成）中进行剪枝，投票等流程，最终选出一个最合理的补丁，以提供解决问题的能力。
+
+
+![](/img/trae_agent_read/1.png)
+
+
+技术报告：[# Trae Agent: An LLM-based Agent for Software Engineering with Test-time Scaling](https://arxiv.org/html/2507.23370?_immersive_translate_auto_translate=1)
+
+
+#### Prompt
+```markdown
+# ROLE: Act as an expert code evaluator. Given a codebase, an github issue and **{candidate_length} candidate patches** proposed by your colleagues, your responsibility is to **select the correct one** to solve the issue.
+
+# WORK PROCESS:
+You are given a software issue and multiple candidate patches. Your goal is to identify the patch that correctly resolves the issue.
+
+Follow these steps methodically:
+
+**1. Understand the Issue and Codebase**
+Carefully read the issue description to comprehend the problem. You may need to examine the codebase for context, including:
+    (1) Code referenced in the issue description;
+    (2) The original code modified by each patch;
+    (3) Unchanged parts of the same file;
+    (4) Related files, functions, or modules that interact with the affected code.
+
+**2. Analyze the Candidate Patches**
+For each patch, analyze its logic and intended fix. Consider whether the changes align with the issue description and coding conventions.
+
+**3. Validate Functionality (Optional but Recommended)**
+If needed, write and run unit tests to evaluate the correctness and potential side effects of each patch.
+
+**4. Select the Best Patch**
+Choose the patch that best resolves the issue with minimal risk of introducing new problems.
+
+# FINAL REPORT: If you have successfully selected the correct patch, submit your answer in the following format:
+### Status: succeed
+### Result: Patch-x
+### Analysis: [Explain why Patch-x is correct.]
+
+# IMPORTANT TIPS:
+1. Never avoid making a selection.
+2. Do not propose new patches.
+3. There must be at least one correct patch.
+```
+
+#### 核心流程
+```mermaid
+flowchart TD
+    A[读取 SWE-bench 实例\ninstances.json] --> B[载入候选补丁\ncandidate.jsonl]
+    B --> C{按 group_size\n分组候选}
+    C -->|全对/全错| D[直接记录结果\n保存补丁/状态]
+    C -->|需要评估| E[预处理候选\n清洗/去重/回归过滤]
+    E --> F[启动 Sandbox\n准备仓库环境]
+    F --> G{majority_voting?}
+    G -->|是| H[多轮调用 SelectorAgent\n直至某补丁过半]
+    G -->|否| I[单次调用 SelectorAgent]
+    H --> J[确定最终补丁 ID/内容]
+    I --> J
+    J --> K[保存补丁内容\npatch/]
+    J --> L[记录统计信息\nstatistics/]
+    F --> M[LLM 交互日志\nlog/]
+    F --> N[标准输出/错误\noutput/]
+```
+
+- 剪枝&去重：使用 `Agentless` 为候选补丁生成是否回归测试是否通过标识，可以在剪枝流程过滤掉失败的补丁减少候选集。同时会使用 `clean_patch` 方法格式化候选集中的补丁来去重
+- 投票：在经过剪枝&去重的候选集中进行 LLM 投票，选择中获票次数最高的补丁
+
+投票策略
+```python
+# majority voting
+if majority_voting:
+	final_id_list, final_patch_list = [], []
+	for idx in range(num_candidate):
+		select_agent = SelectorAgent(
+			llm_config=llm_config,
+			sandbox=sandbox,
+			project_path=project_path,
+			issue_description=instance["problem_statement"],
+			trajectory_file_name=get_trajectory_filename(
+				instance["instance_id"], log_path, group_id, idx
+			),
+			candidate_list=candidate_list,
+			max_turn=max_turn,
+		)
+
+		final_id, final_patch = select_agent.run()
+		final_id_list.append(final_id)
+		final_patch_list.append(final_patch)
+		if max(Counter(final_id_list).values()) > num_candidate / 2:
+			break
+	print(f"[Retry No:{current_try}] majority voting done")
+	sys.stdout.flush()
+	sys.stderr.flush()
+
+	counter = Counter(final_id_list)
+	max_count = max(counter.values())
+	most_common_ids = [
+		elem for elem, count in counter.items() if count == max_count
+	]
+	result = {}
+	for id_ in most_common_ids:
+		indexes = [i for i, val in enumerate(final_id_list) if val == id_]
+		result[id_] = indexes
+	final_id = most_common_ids[0]
+	final_patch = final_patch_list[result[final_id][0]]
+	print(f"[Retry No:{current_try}] final_id_list: {final_id_list}")
+	sys.stdout.flush()
+	sys.stderr.flush()
+```
+
+当某个候选补丁获得的票数超过一半，提前退出投票流程。否则在最多相同票数中选出第一个。
 

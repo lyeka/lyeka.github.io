@@ -95,11 +95,6 @@
 
   
   
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs';
-      mermaid.initialize({ startOnLoad: true });
-    </script>
-  
 
 
   
@@ -357,7 +352,17 @@
         </li>
       </ol>
     </li>
-    <li><a href="#评估">评估</a></li>
+    <li><a href="#评估">评估</a>
+      <ol>
+        <li><a href="#swe-bench">SWE Bench</a></li>
+        <li><a href="#patch-selection">Patch Selection</a>
+          <ol>
+            <li><a href="#prompt-1">Prompt</a></li>
+            <li><a href="#核心流程-1">核心流程</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
   </ol>
 </nav></div>
       </details>
@@ -604,7 +609,7 @@
     CLI-&gt;&gt;CLI: 显示轨迹文件路径
   </pre>
   <p>Trae Agent 整体设计上采用了 ReAct 模式，当创建 Agent 实例并初始化资源后，开始在循环中执行任务，交替执行 LLM 推理、工具执行，失败反思步骤，直到任务完成。
-任务的完成分为两步，一是解析 LLM 的 Response 中是否有任务结束标识（ 是否包含 <code>task_done</code> 等关键字），二是当必须有代码变更时，检查是否有除了 test 文件之外的的改动（TODO：什么情况下才必须要有代码变更？）。</p>
+任务的完成分为两步，一是解析 LLM 的 Response 中是否有任务结束标识（ 是否包含 <code>task_done</code> 等关键字），二是当必须有代码变更时，检查是否有除了 test 文件之外的的改动（目前看起来只有 SWE Bench 评估才有这个 <code>_is_task_completed</code> 流程）。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@override</span>  
 </span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_is_task_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_response</span><span class="p">:</span> <span class="n">LLMResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>  
 </span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Enhanced task completion detection.&#34;&#34;&#34;</span>  
@@ -978,63 +983,63 @@
 </ul>
 <p>该工具的实现并不复杂，这里不展开讲解具体逻辑。</p>
 <h4 id="文件路径校验">文件路径校验</h4>
-<p>路径参数只支持绝对路径，报错还会给出可能的路径。基本上所有的 coding agent 的实现都推荐使用决定路径作为工具参数。</p>
+<p>路径参数只支持绝对路径，报错还会给出可能的路径。基本上所有的 coding agent 的实现都推荐使用绝对路径作为工具参数。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">validate_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Validate the path for the str_replace_editor tool.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">suggested_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&#34;/&#34;</span><span class="p">)</span> <span class="o">/</span> <span class="n">path</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is not an absolute path, it should start with `/`. Maybe you meant </span><span class="si">{</span><span class="n">suggested_path</span><span class="si">}</span><span class="s2">?&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Check if path exists</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> does not exist. Please provide a valid path.&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;File already exists at: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Cannot overwrite files using command `create`.&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Check if the path points to a directory</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;view&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is a directory and only the `view` command can be used on directories&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="s2">&#34;&#34;&#34;Validate the path for the str_replace_editor tool.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">		<span class="n">suggested_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&#34;/&#34;</span><span class="p">)</span> <span class="o">/</span> <span class="n">path</span>
+</span></span><span class="line"><span class="cl">		<span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">			<span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is not an absolute path, it should start with `/`. Maybe you meant </span><span class="si">{</span><span class="n">suggested_path</span><span class="si">}</span><span class="s2">?&#34;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># Check if path exists</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> does not exist. Please provide a valid path.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&#34;create&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">			<span class="sa">f</span><span class="s2">&#34;File already exists at: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Cannot overwrite files using command `create`.&#34;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># Check if the path points to a directory</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">command</span> <span class="o">!=</span> <span class="s2">&#34;view&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">			<span class="sa">f</span><span class="s2">&#34;The path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is a directory and only the `view` command can be used on directories&#34;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">)</span>
 </span></span></code></pre></div><h4 id="结果输出">结果输出</h4>
 <p>在工具完成任务后会输出相对友好的改动范围，作为工具输出反馈给LLM ，还可以用于 UI 展示</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">str_replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">old_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToolExecResult</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">	    <span class="o">...</span> <span class="c1"># 文件内容替换</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span> <span class="c1"># 文件内容替换</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Create a snippet of the edited section</span>
-</span></span><span class="line"><span class="cl">        <span class="n">replacement_line</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">old_str</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">start_line</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">replacement_line</span> <span class="o">-</span> <span class="n">SNIPPET_LINES</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">end_line</span> <span class="o">=</span> <span class="n">replacement_line</span> <span class="o">+</span> <span class="n">SNIPPET_LINES</span> <span class="o">+</span> <span class="n">new_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">snippet</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)[</span><span class="n">start_line</span> <span class="p">:</span> <span class="n">end_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># Create a snippet of the edited section</span>
+</span></span><span class="line"><span class="cl">	<span class="n">replacement_line</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">old_str</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">start_line</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">replacement_line</span> <span class="o">-</span> <span class="n">SNIPPET_LINES</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">end_line</span> <span class="o">=</span> <span class="n">replacement_line</span> <span class="o">+</span> <span class="n">SNIPPET_LINES</span> <span class="o">+</span> <span class="n">new_str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">snippet</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)[</span><span class="n">start_line</span> <span class="p">:</span> <span class="n">end_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Prepare the success message</span>
-</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;The file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has been edited. &#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_output</span><span class="p">(</span><span class="n">snippet</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&#34;a snippet of </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">start_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">success_msg</span> <span class="o">+=</span> <span class="s2">&#34;Review the changes and make sure they are as expected. Edit the file again if necessary.&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># Prepare the success message</span>
+</span></span><span class="line"><span class="cl">	<span class="n">success_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;The file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has been edited. &#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">success_msg</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_output</span><span class="p">(</span><span class="n">snippet</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&#34;a snippet of </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">start_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">success_msg</span> <span class="o">+=</span> <span class="s2">&#34;Review the changes and make sure they are as expected. Edit the file again if necessary.&#34;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ToolExecResult</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">output</span><span class="o">=</span><span class="n">success_msg</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="n">ToolExecResult</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="n">output</span><span class="o">=</span><span class="n">success_msg</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_make_output</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="bp">self</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">file_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">file_descriptor</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">init_line</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">expand_tabs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="n">file_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="n">file_descriptor</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="n">init_line</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="n">expand_tabs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl"><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Generate output for the CLI based on the content of a file.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">file_content</span> <span class="o">=</span> <span class="n">maybe_truncate</span><span class="p">(</span><span class="n">file_content</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">expand_tabs</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">file_content</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">expandtabs</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">file_content</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="n">init_line</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">))]</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;Here&#39;s the result of running `cat -n` on </span><span class="si">{</span><span class="n">file_descriptor</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="n">file_content</span> <span class="o">+</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="s2">&#34;&#34;&#34;Generate output for the CLI based on the content of a file.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">file_content</span> <span class="o">=</span> <span class="n">maybe_truncate</span><span class="p">(</span><span class="n">file_content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="n">expand_tabs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="n">file_content</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">expandtabs</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="n">file_content</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="p">[</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="n">init_line</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">))]</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="sa">f</span><span class="s2">&#34;Here&#39;s the result of running `cat -n` on </span><span class="si">{</span><span class="n">file_descriptor</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&#34;</span> <span class="o">+</span> <span class="n">file_content</span> <span class="o">+</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">)</span>
 </span></span></code></pre></div><h3 id="sequential-thinking-tool">Sequential Thinking Tool</h3>
 <p>顺序思考工具 ，在 trae-agent 中用于帮助 AI 进行结构化思考和问题分解的工具。</p>
 <h4 id="prompt">Prompt</h4>
@@ -1096,15 +1101,15 @@
 </span></span></code></pre></div><h4 id="结构化思考">结构化思考</h4>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@dataclass</span>
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ThoughtData</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">thought</span><span class="p">:</span> <span class="nb">str</span>
-</span></span><span class="line"><span class="cl">    <span class="n">thought_number</span><span class="p">:</span> <span class="nb">int</span>
-</span></span><span class="line"><span class="cl">    <span class="n">total_thoughts</span><span class="p">:</span> <span class="nb">int</span>
-</span></span><span class="line"><span class="cl">    <span class="n">next_thought_needed</span><span class="p">:</span> <span class="nb">bool</span>
-</span></span><span class="line"><span class="cl">    <span class="n">is_revision</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">    <span class="n">revises_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">    <span class="n">branch_from_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">    <span class="n">branch_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">    <span class="n">needs_more_thoughts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">	<span class="n">thought</span><span class="p">:</span> <span class="nb">str</span>
+</span></span><span class="line"><span class="cl">	<span class="n">thought_number</span><span class="p">:</span> <span class="nb">int</span>
+</span></span><span class="line"><span class="cl">	<span class="n">total_thoughts</span><span class="p">:</span> <span class="nb">int</span>
+</span></span><span class="line"><span class="cl">	<span class="n">next_thought_needed</span><span class="p">:</span> <span class="nb">bool</span>
+</span></span><span class="line"><span class="cl">	<span class="n">is_revision</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">	<span class="n">revises_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">	<span class="n">branch_from_thought</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">	<span class="n">branch_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">	<span class="n">needs_more_thoughts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></span></code></pre></div><p>参数解释（其实就是对应上面 Prompt 部分的翻译）:</p>
 <ul>
 <li>thought: 您当前思考步骤，可以包括：
@@ -1129,6 +1134,131 @@
 </ul>
 <p><strong>这个思考工具通过结构化的设计（强校验）以及引入序列版本号、分支、修订机制让 LLM 的推理更加强大，可以追溯之前的思路一步步演进和返工重来。</strong></p>
 <h2 id="评估">评估</h2>
+<h3 id="swe-bench">SWE Bench</h3>
+<p>Trae agent 里面使用了 <a href="https://www.swebench.com/">SWE-bench</a>, <a href="https://swe-bench-live.github.io/">SWE-bench-Live</a>, 和 <a href="https://multi-swe-bench.github.io/">Multi-SWE-bench</a> 数据集来测试评估 agent 解决软件工程问题的能力</p>
+<p>SWE 测试评估流程 如下</p>
+<pre class="mermaid">
+    graph TD
+    A[GitHub 真实问题] --&gt; B[SWE-bench 数据集]
+    B --&gt; C[Docker 环境 + 源代码]
+    C --&gt; D[Trae Agent 分析问题]
+    D --&gt; E[生成代码补丁]
+    E --&gt; F[应用补丁到源代码]
+    F --&gt; G[运行自动化测试]
+    G --&gt; H{测试是否通过?}
+    H --&gt;|通过| I[✅ 问题解决]
+    H --&gt;|失败| J[❌ 补丁无效]
+    
+    I --&gt; K[计算成功率指标]
+    J --&gt; K
+    
+    style A fill:#e1f5fe
+    style E fill:#fff3e0
+    style G fill:#f3e5f5
+    style I fill:#e8f5e8
+    style J fill:#ffebee
+  </pre>
+  <p>除了该评估外，Trae agent 还实现了一个 patch selection</p>
+<h3 id="patch-selection">Patch Selection</h3>
+<p>项目里提供了一个 Selector Agent， 该 Agent 在多个候选补丁（ 使用 Trae Agent 生成）中进行剪枝，投票等流程，最终选出一个最合理的补丁，以提供解决问题的能力。</p>
+<p><img src="/img/trae_agent_read/1.png" alt=""></p>
+<p>技术报告：<a href="https://arxiv.org/html/2507.23370?_immersive_translate_auto_translate=1"># Trae Agent: An LLM-based Agent for Software Engineering with Test-time Scaling</a></p>
+<h4 id="prompt-1">Prompt</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># ROLE: Act as an expert code evaluator. Given a codebase, an github issue and **{candidate_length} candidate patches** proposed by your colleagues, your responsibility is to **select the correct one** to solve the issue.
+</span></span></span><span class="line"><span class="cl"><span class="gh"></span>
+</span></span><span class="line"><span class="cl"><span class="gh"># WORK PROCESS:
+</span></span></span><span class="line"><span class="cl"><span class="gh"></span>You are given a software issue and multiple candidate patches. Your goal is to identify the patch that correctly resolves the issue.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Follow these steps methodically:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gs">**1. Understand the Issue and Codebase**</span>
+</span></span><span class="line"><span class="cl">Carefully read the issue description to comprehend the problem. You may need to examine the codebase for context, including:
+</span></span><span class="line"><span class="cl">    (1) Code referenced in the issue description;
+</span></span><span class="line"><span class="cl">    (2) The original code modified by each patch;
+</span></span><span class="line"><span class="cl">    (3) Unchanged parts of the same file;
+</span></span><span class="line"><span class="cl">    (4) Related files, functions, or modules that interact with the affected code.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gs">**2. Analyze the Candidate Patches**</span>
+</span></span><span class="line"><span class="cl">For each patch, analyze its logic and intended fix. Consider whether the changes align with the issue description and coding conventions.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gs">**3. Validate Functionality (Optional but Recommended)**</span>
+</span></span><span class="line"><span class="cl">If needed, write and run unit tests to evaluate the correctness and potential side effects of each patch.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gs">**4. Select the Best Patch**</span>
+</span></span><span class="line"><span class="cl">Choose the patch that best resolves the issue with minimal risk of introducing new problems.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gh"># FINAL REPORT: If you have successfully selected the correct patch, submit your answer in the following format:
+</span></span></span><span class="line"><span class="cl"><span class="gh"></span><span class="gu">### Status: succeed
+</span></span></span><span class="line"><span class="cl"><span class="gu">### Result: Patch-x
+</span></span></span><span class="line"><span class="cl"><span class="gu">### Analysis: [Explain why Patch-x is correct.]
+</span></span></span><span class="line"><span class="cl"><span class="gu"></span>
+</span></span><span class="line"><span class="cl"><span class="gh"># IMPORTANT TIPS:
+</span></span></span><span class="line"><span class="cl"><span class="gh"></span><span class="k">1.</span> Never avoid making a selection.
+</span></span><span class="line"><span class="cl"><span class="k">2.</span> Do not propose new patches.
+</span></span><span class="line"><span class="cl"><span class="k">3.</span> There must be at least one correct patch.
+</span></span></code></pre></div><h4 id="核心流程-1">核心流程</h4>
+<pre class="mermaid">
+    flowchart TD
+    A[读取 SWE-bench 实例\ninstances.json] --&gt; B[载入候选补丁\ncandidate.jsonl]
+    B --&gt; C{按 group_size\n分组候选}
+    C --&gt;|全对/全错| D[直接记录结果\n保存补丁/状态]
+    C --&gt;|需要评估| E[预处理候选\n清洗/去重/回归过滤]
+    E --&gt; F[启动 Sandbox\n准备仓库环境]
+    F --&gt; G{majority_voting?}
+    G --&gt;|是| H[多轮调用 SelectorAgent\n直至某补丁过半]
+    G --&gt;|否| I[单次调用 SelectorAgent]
+    H --&gt; J[确定最终补丁 ID/内容]
+    I --&gt; J
+    J --&gt; K[保存补丁内容\npatch/]
+    J --&gt; L[记录统计信息\nstatistics/]
+    F --&gt; M[LLM 交互日志\nlog/]
+    F --&gt; N[标准输出/错误\noutput/]
+  </pre>
+  <ul>
+<li>剪枝&amp;去重：使用 <code>Agentless</code> 为候选补丁生成是否回归测试是否通过标识，可以在剪枝流程过滤掉失败的补丁减少候选集。同时会使用 <code>clean_patch</code> 方法格式化候选集中的补丁来去重</li>
+<li>投票：在经过剪枝&amp;去重的候选集中进行 LLM 投票，选择中获票次数最高的补丁</li>
+</ul>
+<p>投票策略</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># majority voting</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">majority_voting</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">	<span class="n">final_id_list</span><span class="p">,</span> <span class="n">final_patch_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_candidate</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">		<span class="n">select_agent</span> <span class="o">=</span> <span class="n">SelectorAgent</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">			<span class="n">llm_config</span><span class="o">=</span><span class="n">llm_config</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="n">sandbox</span><span class="o">=</span><span class="n">sandbox</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="n">project_path</span><span class="o">=</span><span class="n">project_path</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="n">issue_description</span><span class="o">=</span><span class="n">instance</span><span class="p">[</span><span class="s2">&#34;problem_statement&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">			<span class="n">trajectory_file_name</span><span class="o">=</span><span class="n">get_trajectory_filename</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">				<span class="n">instance</span><span class="p">[</span><span class="s2">&#34;instance_id&#34;</span><span class="p">],</span> <span class="n">log_path</span><span class="p">,</span> <span class="n">group_id</span><span class="p">,</span> <span class="n">idx</span>
+</span></span><span class="line"><span class="cl">			<span class="p">),</span>
+</span></span><span class="line"><span class="cl">			<span class="n">candidate_list</span><span class="o">=</span><span class="n">candidate_list</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="n">max_turn</span><span class="o">=</span><span class="n">max_turn</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="n">final_id</span><span class="p">,</span> <span class="n">final_patch</span> <span class="o">=</span> <span class="n">select_agent</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="n">final_id_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="n">final_patch_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_patch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">final_id_list</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&gt;</span> <span class="n">num_candidate</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">break</span>
+</span></span><span class="line"><span class="cl">	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[Retry No:</span><span class="si">{</span><span class="n">current_try</span><span class="si">}</span><span class="s2">] majority voting done&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">final_id_list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">max_count</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="n">most_common_ids</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">		<span class="n">elem</span> <span class="k">for</span> <span class="n">elem</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">counter</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="n">max_count</span>
+</span></span><span class="line"><span class="cl">	<span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="n">id_</span> <span class="ow">in</span> <span class="n">most_common_ids</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">final_id_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="n">id_</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="n">result</span><span class="p">[</span><span class="n">id_</span><span class="p">]</span> <span class="o">=</span> <span class="n">indexes</span>
+</span></span><span class="line"><span class="cl">	<span class="n">final_id</span> <span class="o">=</span> <span class="n">most_common_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="n">final_patch</span> <span class="o">=</span> <span class="n">final_patch_list</span><span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="n">final_id</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[Retry No:</span><span class="si">{</span><span class="n">current_try</span><span class="si">}</span><span class="s2">] final_id_list: </span><span class="si">{</span><span class="n">final_id_list</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</span></span></code></pre></div><p>当某个候选补丁获得的票数超过一半，提前退出投票流程。否则在最多相同票数中选出第一个。</p>
 </div><div class="flex flex-col items-center justify-center" style="min-height:120px;">
   <p style="opacity: 0.5; font-size: 0.8rem; color: #888;">-- End --</p>
 </div>
