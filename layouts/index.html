@@ -1,7 +1,6 @@
 {{ define "main" }}
   <!-- {{ .Content }} -->
-  
-  <p>Recent Post:</p>  
+  <p># Recent Post:</p>  
   {{ range first 10 (where .Site.RegularPages "Section" "posts") }}
   <div><a href="{{ .RelPermalink }}">{{ .Title }}</a></div>
 {{ end }}
