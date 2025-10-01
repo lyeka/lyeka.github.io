@@ -4,7 +4,7 @@ title = '如何借助 AI 阅读项目源码'
 tags = ['AI', "源码"]
 +++
 {{< quote info >}}  
-本文以：[LightRAG](https://github.com/HKUDS/LightRAG)  项目地址举例说明
+本文以：[LightRAG](https://github.com/HKUDS/LightRAG)  项目举例说明
 {{< /quote >}}
 
 
