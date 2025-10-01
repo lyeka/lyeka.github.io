@@ -8,20 +8,27 @@
     <language>en-us</language>
     <managingEditor>augustr2017@163.com (Lyeka)</managingEditor>
     <webMaster>augustr2017@163.com (Lyeka)</webMaster>
-    <lastBuildDate>Fri, 26 Sep 2025 18:33:15 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 01 Oct 2025 00:00:00 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>AI</title>
+      <link>http://localhost:1313/tags/ai/</link>
+      <pubDate>Wed, 01 Oct 2025 00:00:00 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
+      <guid>http://localhost:1313/tags/ai/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>源码</title>
+      <link>http://localhost:1313/tags/%E6%BA%90%E7%A0%81/</link>
+      <pubDate>Wed, 01 Oct 2025 00:00:00 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
+      <guid>http://localhost:1313/tags/%E6%BA%90%E7%A0%81/</guid>
+      <description></description>
+    </item>
     <item>
       <title>Agent</title>
       <link>http://localhost:1313/tags/agent/</link>
       <pubDate>Fri, 26 Sep 2025 18:33:15 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
       <guid>http://localhost:1313/tags/agent/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>AI</title>
-      <link>http://localhost:1313/tags/ai/</link>
-      <pubDate>Fri, 26 Sep 2025 18:33:15 +0800</pubDate><author>augustr2017@163.com (Lyeka)</author>
-      <guid>http://localhost:1313/tags/ai/</guid>
       <description></description>
     </item>
     <item>
