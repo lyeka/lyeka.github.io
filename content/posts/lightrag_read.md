@@ -2,7 +2,10 @@
 date = '2025-10-02T00:00:00+08:00'
 title = 'LightRAG 源码阅读'
 +++
-
+{{< quote info >}}
+项目地址：[LightRAG](https://github.com/HKUDS/LightRAG) 
+本文分析基于 Git commit 86195c613e0ced0e2fe8e1293b7d5c952359a7a1 版本
+{{< /quote >}}
 
 
 ## 技术栈
@@ -672,6 +675,7 @@ if len(embeddings) == len(list_data):
 #### 知识提取
 
 TODO
+
 
 
 未完待续...
