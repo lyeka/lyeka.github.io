@@ -387,6 +387,111 @@ classDiagram
 ```
 
 
+### 核心储存数据
+
+```mermaid
+graph LR
+
+subgraph "📄 单个文档"
+
+A[原始文档内容]
+
+end
+
+subgraph "💾 KV数据库 (4种存储)"
+
+B1[完整文档<br/>full_docs]
+
+B2[文本分块<br/>text_chunks]
+
+B3[实体列表<br/>full_entities]
+
+B4[关系列表<br/>full_relations]
+
+end
+
+subgraph "🔍 向量数据库 (3种存储)"
+
+C1[分块向量<br/>chunks_vdb]
+
+C2[实体向量<br/>entities_vdb]
+
+C3[关系向量<br/>relationships_vdb]
+
+end
+
+subgraph "🕸️ 图数据库 (1种存储)"
+
+D1[实体节点 + 关系边<br/>chunk_entity_relation_graph]
+
+end
+
+subgraph "📋 状态数据库 (1种存储)"
+
+E1[处理状态<br/>doc_status]
+
+end
+
+%% 连接关系
+
+A --> B1
+
+A --> B2
+
+A --> B3
+
+A --> B4
+
+A --> C1
+
+A --> C2
+
+A --> C3
+
+A --> D1
+
+A --> E1
+
+%% 样式
+
+classDef kvStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+
+classDef vectorStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+
+classDef graphStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+
+classDef statusStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+classDef docStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+
+class A docStyle
+
+class B1,B2,B3,B4 kvStyle
+
+class C1,C2,C3 vectorStyle
+
+class D1 graphStyle
+
+class E1 statusStyle
+```
+
+存储包括几类数据
+- KV 数据库 
+	- 原始完整文档
+	- 原始 chunks
+	- 实体汇总列表
+	- 关系汇总列表
+	- LLM响应缓存
+- 向量数据库
+	- 分块向量
+	- 实体向量
+	- 关系向量
+- 图数据库
+	- 实体节点和关系边
+- 文档状态数据库
+	- 文档处理状态和元数据
+
+
 ## 核心流程概述
 
 ### 文档插入流程
@@ -437,6 +542,9 @@ classDiagram
 ## 核心流程详解
 
 ### 文档插入流程
+理解文档插入流程需要结合 '核心储存数据' 章节理解
+
+
 
 ```mermaid
 sequenceDiagram
@@ -559,8 +667,10 @@ sequenceDiagram
 ```
 
 
-上面的流程图展示了文档插入的核心流程，初次之外，还有一些工程性的流程需要关注一下
-- `_validate_and_fix_document_consistency`: 在文档处理流水线开始前调用，检查并修复doc_status(文档状态)和full_docs(完整文档)之间的数据不一致问题。这种不一致可能会出现在各种异常如程序异常退出、后端储存故障等。
+上面的流程图展示了文档插入的核心流程，除此之外，还有一些工程性的流程需要关注一下
+- 数据修复 `_validate_and_fix_document_consistency`: 在文档处理流水线开始前调用，检查并修复doc_status(文档状态)和full_docs(完整文档)之间的数据不一致问题。这种不一致可能会出现在各种异常如程序异常退出、后端储存故障等。
+- LLM Response Cache 策略
+- 并发处理策略
 
 
 #### 分块算法
@@ -672,11 +782,239 @@ if len(embeddings) == len(list_data):
 ```
 
 
-#### 知识提取
+#### 知识图谱构建
+
+知识图谱用于建立原始文档之间的实体的关系，关系的提取包括两轮的 LLM 任务：
+- 第一轮提取出基本的实体和关系。
+- 第二轮 Gleaning  可选，基于第一轮的输出再进行一次 二次输出
+	- 提高召回率：发现遗漏的实体和关系
+	- 提高准确性：修正格式错误和不完整的提取
+在进行两轮任务后，会合并两轮输出的实体与关系，选择出描述最详细的结果。
+在存储进数据库的时候，还会根据库里已经存在的实体与关系，再进行合并处理。
+
+**上下文与提示词**
+
+系统中预定义了实体类型在，不在此列表中的会被归类为 Other 类型
+```json
+[
+    "Person",
+    "Creature",
+    "Organization",
+    "Location",
+    "Event",
+    "Concept",
+    "Method",
+    "Content",
+    "Data",
+    "Artifact",
+    "NaturalObject",
+]
+```
+
+{{< details "System Prompt " >}}
+
+```
+---角色---
+
+您是知识图谱专家，负责从输入文本中提取实体和关系。
+
+---说明---
+
+1. **实体提取与输出：**
+
+* **识别：** 明确识别输入文本中的定义清晰且具有意义的实体。
+
+* **实体详细信息：** 对于每个识别的实体，提取以下信息：
+
+* `entity_name`：实体的名称。如果实体名称不区分大小写，则将每个重要单词的首字母大写（标题大小写）。在整个提取过程中确保**命名一致**。
+
+* `entity_type`：使用以下类型之一对实体进行分类：`{entity_types}`。如果提供的实体类型都不适用，则不要添加新的实体类型，将其归类为“其他”。
+
+* `entity_description`：根据输入文本中提供的信息，提供关于实体属性和活动的简洁而全面的描述。
+
+* **输出格式 - 实体：** 每个实体输出4个字段，由`{tuple_delimiter}`分隔，在同一行上。第一个字段必须是字面字符串`entity`。
+
+* 格式：`entity{tuple_delimiter}entity_name{tuple_delimiter}entity_type{tuple_delimiter}entity_description`
+
+2. **关系提取与输出：**
+
+* **识别：** 识别先前提取实体之间直接、明确且具有意义的联系。
+
+* **N元关系分解：** 如果单个语句描述了涉及两个以上实体（N元关系）的关系，将其分解为多个二元（两个实体）关系对进行单独描述。
+
+* **示例：** 对于“Alice、Bob和Carol合作完成了项目X”，提取二元关系，如“Alice与项目X合作”、“Bob与项目X合作”和“Carol与项目X合作”，或者“Alice与Bob合作”，基于最合理的二元解释。
+
+* **关系详细信息：** 对于每个二元关系，提取以下字段：
+
+* `source_entity`：源实体的名称。确保与实体提取**命名一致**。如果名称不区分大小写，则将每个重要单词的首字母大写（标题大小写）。
+
+* `target_entity`：目标实体的名称。确保与实体提取**命名一致**。如果名称不区分大小写，则将每个重要单词的首字母大写（标题大小写）。
+
+* `relationship_keywords`：一个或多个总结关系整体性质、概念或主题的高级关键词。此字段中的多个关键词必须用逗号`,`分隔。**不要在此字段中使用`{tuple_delimiter}`分隔多个关键词。**
+
+* `relationship_description`：对源实体和目标实体之间关系性质的简洁解释，提供其连接的明确理由。
+
+* **输出格式 - 关系：** 每个关系输出5个字段，由`{tuple_delimiter}`分隔，在同一行上。第一个字段必须是字面字符串`relation`。
+
+* 格式：`relation{tuple_delimiter}source_entity{tuple_delimiter}target_entity{tuple_delimiter}relationship_keywords{tuple_delimiter}relationship_description`
+
+3. **分隔符使用协议：**
+
+* `{tuple_delimiter}`是一个完整、原子的标记，**不得填充内容**。它仅作为字段分隔符。
+
+* **错误示例：** `entity{tuple_delimiter}Tokyo<|location|>Tokyo is the capital of Japan.`
+
+* **正确示例：** `entity{tuple_delimiter}Tokyo{tuple_delimiter}location{tuple_delimiter}Tokyo is the capital of Japan.`
+
+4. **关系方向与重复：**
+
+* 将所有关系视为**无向**，除非明确说明否则。交换源实体和目标实体对于无向关系不构成新的关系。
+
+* 避免输出重复的关系。
+
+5. **输出顺序与优先级：**
+
+* 首先输出所有提取的实体，然后输出所有提取的关系。
+
+* 在关系列表中，优先输出对输入文本核心意义**最显著**的关系。
+
+6. **上下文与客观性：**
+
+* 确保所有实体名称和描述都使用**第三人称**。
+
+* 明确命名主题或对象；**避免使用代词**，如`this article`、`this paper`、`our company`、`I`、`you`和`he/she`。
+
+7. **语言与专有名词：**
+
+* 整个输出（实体名称、关键词和描述）必须使用`{language}`。
+
+* 如果没有提供合适的、广泛接受的翻译或会导致歧义，则应保留专有名词（例如个人名称、地点名称、组织名称）的原语言。
+
+8. **完成信号：** 在所有实体和关系完全提取并输出后，仅输出字面字符串`{completion_delimiter}`。
+
+---示例---
+
+{examples}
+
+---待处理的真实数据---
+
+<输入>
+
+实体类型：[{entity_types}]
+
+文本：
+{input_text}
+
+```
+
+{{< /details >}}
+
+
+{{< details "User Prompt " >}}
+
+```
+---任务---
+
+从待处理输入文本中提取实体和关系。
+
+---说明---
+
+1. **严格遵循格式：** 严格遵循系统提示中指定的实体和关系列表的所有格式要求，包括输出顺序、字段分隔符和专有名词处理。
+
+2. **仅输出内容：** 仅输出提取的实体和关系列表。不要包括任何介绍性或结论性评论、解释或列表前后附加的任何文本。
+
+3. **完成信号：** 在提取并呈现所有相关实体和关系后，输出 `{completion_delimiter}` 作为最后一行。
+
+4. **输出语言：** 确保输出语言为 {language}。专有名词（例如，人名、地名、组织名称）必须保持其原始语言，不得翻译。
+
+<输出>
+```
+{{< /details >}}
+
+{{< details "Continue Extraction Prompt " >}}
+```
+---任务---
+
+根据上一次提取任务，从输入文本中识别和提取任何**遗漏或格式错误**的实体和关系。
+
+---说明---
+
+1. **严格遵守系统格式：** 严格遵循系统说明中规定的实体和关系列表的所有格式要求，包括输出顺序、字段分隔符和专有名词处理。
+
+2. **关注修正/添加：**
+
+* **不要**重新输出在上一次任务中**正确且完整**提取的实体和关系。
+
+* 如果在上一次任务中**遗漏**了实体或关系，现在根据系统格式提取并输出它。
+
+* 如果在上一次任务中实体或关系**截断、字段缺失或格式不正确**，以指定格式重新输出*修正和完整*版本。
+
+3. **输出格式 - 实体：** 每个实体输出4个字段，字段之间用`{tuple_delimiter}`分隔，单行输出。第一个字段*必须*是字符串`entity`。
+
+4. **输出格式 - 关系：** 每个关系输出5个字段，字段之间用`{tuple_delimiter}`分隔，单行输出。第一个字段*必须*是字符串`relation`。
+
+5. **仅输出内容：** 仅输出提取的实体和关系列表。不要包括任何介绍性或结论性说明、解释或列表前后附加的文本。
+
+6. **完成信号：** 在所有相关遗漏或修正的实体和关系提取并呈现后，输出`{completion_delimiter}`作为最后一行。
+
+7. **输出语言：** 确保输出语言为{language}。专有名词（例如，人名、地名、组织名）必须保持其原始语言，不得翻译。
+
+<输出>
+```
+
+{{< /details >}}
+
+
+**实体与关系**
+
+实体 Node 示例
+```json
+{
+	"entity_name": "LightRAG",
+	"entity_type": "organization",
+	"description": "LightRAG is a project focused on Retrieval-Augmented Generation, developed by HKUDS, and available on GitHub and PyPI.",
+	"source_id": "chunk-b3574b583039b34744f0d1f4dde878d3",
+	"file_path": "README-zh.md",
+	"timestamp": 1759317110
+}
+```
+
+关系 Edge 示例
+```json
+{
+	"src_id": "LightRAG",
+	"tgt_id": "Retrieval-Augmented Generation",
+	"weight": 1.0,
+	"description": "LightRAG implements Retrieval-Augmented Generation technology.",
+	"keywords": "implementation, technology",
+	"source_id": "chunk-b3574b583039b34744f0d1f4dde878d3",
+	"file_path": "README-zh.md",
+	"timestamp": 1759317110
+}
+```
+
+
+ **实体合并** `_merge_nodes_then_upsert`
+
+在实体更新到数据库时，需要进行合并操作，因为可能已经存在同一个实体多个描述。合并逻辑如下
+- 实体类型：选择出现次数最多的
+- 实体描述：多个描述去重排序后，合并
+	- 如果描述少且简单：直接拼接
+	- 如果描述多或复杂：使用LLM智能合并成一个综合描述
+- 来源ID：去重
+- 文件路径：去重合并拼接
+
+**关系合并**  `_merge_edges_then_upsert`
+
+同样在处理关系的时候，也需要进行相关的合并操作。合并逻辑如下
+- 权重处理：将所有新关系的权重与已存在关系的权重累加
+- 描述去重和排序，再简单合并或者使用 LLM 总结
+- 关键词去重合并
+- 来源信息合并，包括源ID和源文件
+- 自动创建缺失实体：如果出现了不存在的实体，会自动创建一个未知类型的实体并储存，确保知识图谱的完整性，避免"悬空"关系。
+
+
+### 查询&检索流程
+在理解了文档插入流程后，查询流程我们重点关注被储存的数据是如何用于检索的。
 
 TODO
-
-
-
-未完待续...
-
