@@ -1017,4 +1017,205 @@ if len(embeddings) == len(list_data):
 ### 查询&检索流程
 在理解了文档插入流程后，查询流程我们重点关注被储存的数据是如何用于检索的。
 
-TODO
+LightRAG 的查询处理会经过下面四层处理
+- API 层：接收用户查询请求，支持多种查询模式（local、global、hybrid、naive、mix、bypass）
+- 查询路由层：根据查询模式选择相应的处理策略，包括知识图谱查询（kg_query）和朴素查询（naive_query）
+- 知识检索层：四阶段处理架构 - 搜索、截断、合并、构建上下文
+- LLM 生成层：基于检索到的上下文生成最终回答
+
+#### 查询模式策略
+- local模式专注于特定实体及其直接关系，适合精确查询
+- global模式分析整体关系模式，适合概念性查询
+- hybrid模式结合local和global优势，提供全面结果
+- **mix模式整合知识图谱和向量检索，是推荐的默认模式**
+- naive模式仅使用向量相似度搜索
+- bypass模式直接调用LLM
+
+#### 流程时序
+下面以 mix 模式展开描述整个查询检索的流程
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant API as API路由层<br/>query_routes.py
+    participant LightRAG as LightRAG核心<br/>lightrag.py
+    participant KGQuery as 知识图谱查询<br/>operate.py::kg_query
+    participant KeywordExtract as 关键词提取<br/>operate.py::get_keywords_from_query
+    participant SearchStage as 搜索阶段<br/>operate.py::_perform_kg_search
+    participant NodeData as 实体检索<br/>operate.py::_get_node_data
+    participant EdgeData as 关系检索<br/>operate.py::_get_edge_data
+    participant VectorSearch as 向量检索<br/>operate.py::_get_vector_context
+    participant TruncateStage as 截断阶段<br/>operate.py::_apply_token_truncation
+    participant MergeStage as 合并阶段<br/>operate.py::_merge_all_chunks
+    participant ContextStage as 上下文构建<br/>operate.py::_build_llm_context
+    participant LLM as LLM服务
+    
+    rect rgb(255, 240, 240)
+        Note over User, API: 第一阶段：请求接收与路由
+        User->>API: POST /query {query, mode: "mix", params}
+        API->>LightRAG: aquery_llm(query, param)
+        Note over LightRAG: 检查 mode == "mix"
+        LightRAG->>KGQuery: kg_query() [MIX模式]
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over KGQuery, KeywordExtract: 第二阶段：关键词提取
+        KGQuery->>KeywordExtract: get_keywords_from_query()
+        KeywordExtract->>LLM: 提取高级和低级关键词
+        LLM-->>KeywordExtract: {high_level_keywords, low_level_keywords}
+        KeywordExtract-->>KGQuery: (hl_keywords, ll_keywords)
+        Note over KGQuery: MIX模式需要两种关键词
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over KGQuery, VectorSearch: 第三阶段：MIX模式三重检索
+        KGQuery->>SearchStage: _perform_kg_search() [MIX模式]
+        
+        Note over SearchStage: MIX模式执行三种检索策略
+        
+        par 并行执行知识图谱检索
+            SearchStage->>NodeData: _get_node_data(ll_keywords)
+            Note over NodeData: 基于低级关键词检索实体
+            NodeData-->>SearchStage: local_entities, local_relations
+        and
+            SearchStage->>EdgeData: _get_edge_data(hl_keywords)
+            Note over EdgeData: 基于高级关键词检索关系
+            EdgeData-->>SearchStage: global_relations, global_entities
+        and
+            Note over SearchStage: MIX模式独有：向量检索
+            SearchStage->>VectorSearch: _get_vector_context(query, chunks_vdb)
+            Note over VectorSearch: 向量相似度搜索原始文档块
+            VectorSearch-->>SearchStage: vector_chunks + chunk_tracking
+        end
+        
+        Note over SearchStage: 轮询合并三种数据源
+        SearchStage->>SearchStage: 合并 entities (local + global)
+        SearchStage->>SearchStage: 合并 relations (local + global)
+        SearchStage->>SearchStage: 记录 vector_chunks 来源
+        SearchStage-->>KGQuery: {final_entities, final_relations, vector_chunks, chunk_tracking}
+    end
+    
+    rect rgb(255, 255, 240)
+        Note over KGQuery, ContextStage: 第四阶段：MIX模式容错处理与上下文构建
+        
+        Note over KGQuery: MIX模式容错检查
+        alt 知识图谱检索成功
+            Note over KGQuery: entities 或 relations 不为空
+        else 知识图谱检索失败但向量检索成功
+            Note over KGQuery: chunk_tracking 不为空，继续处理
+        else 所有检索都失败
+            KGQuery-->>LightRAG: 返回失败响应
+        end
+        
+        KGQuery->>TruncateStage: _apply_token_truncation()
+        Note over TruncateStage: 截断实体和关系上下文
+        TruncateStage-->>KGQuery: {entities_context, relations_context, filtered_*}
+        
+        KGQuery->>MergeStage: _merge_all_chunks()
+        Note over MergeStage: MIX模式特殊处理：合并KG块和向量块
+        MergeStage->>MergeStage: 从filtered_entities/relations获取KG块
+        MergeStage->>MergeStage: 合并vector_chunks
+        MergeStage->>MergeStage: 应用重排序和去重
+        MergeStage-->>KGQuery: merged_chunks (KG + Vector)
+        
+        KGQuery->>ContextStage: _build_llm_context()
+        Note over ContextStage: 构建包含三种数据源的上下文
+        ContextStage->>ContextStage: 格式化entities_context
+        ContextStage->>ContextStage: 格式化relations_context  
+        ContextStage->>ContextStage: 格式化merged_chunks (KG+Vector)
+        ContextStage->>ContextStage: 生成引用列表
+        ContextStage-->>KGQuery: (context_string, raw_data)
+    end
+    
+    rect rgb(240, 255, 255)
+        Note over KGQuery, User: 第五阶段：LLM生成与响应
+        KGQuery->>LLM: 系统提示词 + MIX模式上下文 + 用户查询
+        Note over LLM: 基于知识图谱+向量检索的综合上下文生成回答
+        LLM-->>KGQuery: 生成的回答（流式或非流式）
+        KGQuery-->>LightRAG: QueryResult{content, raw_data, is_streaming}
+        LightRAG-->>API: 包含三种数据源的结构化响应
+        API-->>User: JSON响应 {response, references}
+    end
+```
+
+
+
+#### 关键词提取
+**提取关键词这一步服务于知识图谱的检索，为了更好的捕获问题中的实体以及其关系**，由 LLM 提取 Query 中的低级关键词和高级关键词
+- 低级关键词：用于识别具体实体、专有名词、专业术语、产品名称或具体事项的细节信息
+- 高级关键词：用于捕捉核心意图、主题领域或问题类型的宏观概念
+
+```json
+示例
+查询：“国际贸易如何影响全球经济稳定？”
+输出：
+{
+"high_level_keywords": ["国际贸易", "全球经济稳定", "经济影响"],
+"low_level_keywords": ["贸易协定", "关税", "货币兑换", "进口", "出口"]
+}
+
+
+查询：“森林砍伐对生物多样性的环境影响有哪些？”
+输出：
+{
+"high_level_keywords": ["环境影响", "森林砍伐", "生物多样性丧失"],
+"low_level_keywords": ["物种灭绝", "栖息地破坏", "碳排放", "热带雨林", "生态系统"]
+}
+```
+
+
+{{< details "关键词提取 Prompt " >}}
+```
+---角色---
+
+您是一位专业的关键词提取专家，专注于分析检索增强生成（RAG）系统中的用户查询。您的目标是识别用户查询中的高层次和低层次关键词，以实现高效文档检索。
+
+---目标---
+
+针对用户查询，您的任务是提取两种不同类型的关键词：
+
+1. **高层次关键词**：用于捕捉核心意图、主题领域或问题类型的宏观概念。
+
+2. **低层次关键词**：用于识别具体实体、专有名词、专业术语、产品名称或具体事项的细节信息。
+
+---规则与限制---
+
+1. **输出格式**：输出必须是纯JSON对象格式，不得包含任何说明文字、Markdown代码标记（如```json）或前后缀文本。该输出将直接由JSON解析器处理。
+
+2. **来源依据**：所有关键词必须严格源自用户查询，且两个关键词类别都必须包含实际内容。
+
+3. **简洁性与意义**：关键词应为简洁的单词或意义明确的短语。当多词短语代表单一概念时优先提取完整短语，例如从“苹果公司最新财报”中应提取“最新财报”和“苹果公司”，而非拆分为“最新”“财务”“报告”“苹果”。
+
+4. **特殊情况处理**：对于过于简单、模糊或无意义的查询（如“你好”“好的”“乱码字符”），需返回包含空列表的JSON对象。
+
+---示例---
+
+```
+{{< /details >}}
+
+
+#### 基于低级关键词检索实体
+这一步通过查询低级关键词找到最相关的实体及其关联关系，包括下面3个关键查询
+1. 查询向量库中的实体数据：基于语义相似度找到与低级关键词最相关的实体
+2. 查询知识图谱中的实体数据：找出上一步实体在知识图谱中的详细数据
+3. 查询知识图谱中的关系数据：计算实体在图中的连接度数（用于作重要性评估）
+
+#### 基于高级关键词检索关系
+
+这一步基于高级关键词找到最相关的关系及其连接的实体，专注于发现知识图谱中的关系模式和全局结构信息。
+包括下面3份关键查询
+1. 查询向量库中的关系数据：基于语义相似度找到与高级关键词最相关的关系
+2. 查询知识图谱中的关系数据：从知识图谱批量获取关系的详细属性信息
+3. 实体提取：从找到的关系中提取所有涉及的实体
+
+
+#### 向量检索
+基础RAG里面的检索流程， 使用余弦相似度匹配出最相关的 TopK 个分块向量
+
+#### 
+
+
+
+
+
+
